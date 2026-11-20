@@ -30,10 +30,6 @@ using InterfacesList = std::vector<std::string>;
 using ::aidl::android::hardware::soundtrigger3::SoundTriggerHw;
 using ::aidl::vendor::mediatek::hardware::audio::MtkAudio;
 
-/** Try to register the provided factories in the provided order.
- *  If any registers successfully, do not register any other and return true.
- *  If all fail, return false.
- */
 template <class Iter>
 static bool registerPassthroughServiceImplementations(Iter first, Iter last) {
     for (; first != last; ++first) {
@@ -58,7 +54,7 @@ static bool registerExternalServiceImplementation(const std::string& libName,
                                                   const std::string& funcName) {
     constexpr int dlMode = RTLD_LAZY;
     void* handle = nullptr;
-    dlerror();  // clear
+    dlerror();
     auto libPath = libName + ".so";
     handle = dlopen(libPath.c_str(), dlMode);
     if (handle == nullptr) {
@@ -79,7 +75,7 @@ static bool registerExternalServiceImplementation(const std::string& libName,
     return ((*factoryFunction)() == STATUS_OK);
 }
 
-int main(int /* argc */, char* /* argv */[]) {
+int main(int , char* []) {
     signal(SIGPIPE, SIG_IGN);
 
     if (::android::ProcessState::isVndservicemanagerEnabled()) {
@@ -97,10 +93,8 @@ int main(int /* argc */, char* /* argv */[]) {
         ALOGD("Configuring hwbinder with mmap size %d KBytes", value);
         ProcessState::initWithMmapSize(static_cast<size_t>(value) * 1024);
     }
-    configureRpcThreadpool(16, true /*callerWillJoin*/);
+    configureRpcThreadpool(16, true );
 
-    // Automatic formatting tries to compact the lines, making them less readable
-    // clang-format off
     const std::vector<InterfacesList> mandatoryInterfaces = {
         {
             "Audio Core API",
@@ -118,7 +112,6 @@ int main(int /* argc */, char* /* argv */[]) {
             "createIBluetoothAudioProviderFactory",
         }
     };
-    // clang-format on
 
     for (const auto& listIter : mandatoryInterfaces) {
         auto iter = listIter.begin();

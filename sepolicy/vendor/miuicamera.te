@@ -1,17 +1,14 @@
-# MiuiCamera (com.android.camera, runs as priv_app) and the camera HAL
 allow priv_app vendor_hal_camera_bgservice:service_manager find;
 allow priv_app mtk_hal_camera:binder { call transfer };
 allow mtk_hal_camera priv_app:binder { call transfer };
 allow priv_app mtk_hal_camera:fd use;
 allow mtk_hal_camera priv_app:fd use;
 
-# Thermal and pressure status
 r_dir_file(priv_app, sysfs_therm)
 allow priv_app { proc_pressure_cpu proc_pressure_io proc_pressure_mem }:file r_file_perms;
 
 allow priv_app apusys_device:chr_file { ioctl read write open };
 
-# MiSys vendor AIDL service (Leica Watermark JSON/font persistence in /mnt/vendor/persist/camera)
 allow priv_app hal_misys_vendor_service:service_manager find;
 allow priv_app hal_misys_vendor_default:binder { call transfer };
 allow hal_misys_vendor_default priv_app:binder { call transfer };

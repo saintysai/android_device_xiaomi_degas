@@ -1,5 +1,3 @@
-# Recovery has no THP daemon; init switches the touch IC to normal reporting
-# (init.recovery.mt6897.rc writes enable_touch_raw).
 recovery_only(`
   allow init sysfs_touch:file w_file_perms;
 ')

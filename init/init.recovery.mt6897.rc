@@ -4,6 +4,4 @@ on init
     setprop sys.usb.controller "11201000.usb0"
 
 on boot
-    # Recovery has no THP daemon: switch the touch IC from raw frames to
-    # normal reporting so the kernel driver sends input events itself.
     write /sys/class/touch/touch_dev/enable_touch_raw 0

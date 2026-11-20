@@ -1,0 +1,29 @@
+[
+  {
+    "repository": "android_device_xiaomi_degas-kernel",
+    "remote": "saintysai",
+    "branch": "lineage-23.2",
+    "target_path": "device/xiaomi/degas-kernel"
+  },
+  {
+    "repository": "android_vendor_xiaomi_degas",
+    "remote": "saintysai",
+    "branch": "lineage-23.2",
+    "target_path": "vendor/xiaomi/degas"
+  },
+  {
+    "repository": "android_hardware_mediatek",
+    "branch": "lineage-23.2",
+    "target_path": "hardware/mediatek"
+  },
+  {
+    "repository": "android_hardware_xiaomi",
+    "branch": "lineage-23.2",
+    "target_path": "hardware/xiaomi"
+  },
+  {
+    "repository": "android_device_mediatek_sepolicy_vndr",
+    "branch": "lineage-23.2",
+    "target_path": "device/mediatek/sepolicy_vndr"
+  }
+]

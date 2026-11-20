@@ -26,15 +26,12 @@ namespace_imports = [
 def lib_fixup_vendor_suffix(lib: str, partition: str, *args, **kwargs):
     return f'{lib}-{partition}' if partition == 'vendor' else None
 
-
 lib_fixups: lib_fixups_user_type = {
     **lib_fixups,
     ('libtflite_mtk',
      'vendor.mediatek.hardware.apuware.utils-V1-ndk',
      'vendor.mediatek.hardware.apuware.utils@2.0',
      'vendor.mediatek.hardware.videotelephony-V1-ndk'): lib_fixup_vendor_suffix,
-    # Also shipped by odm or system_ext under the same name;
-    # the vendor copy is NAME-vendor (see proprietary-files.txt).
     ('libHISCppAlgos',
      'libcameraopt',
      'libcom.xiaomi.hwadapter.decoupleutil',
@@ -47,7 +44,6 @@ lib_fixups: lib_fixups_user_type = {
      'vendor.mediatek.hardware.mbrain-V2-ndk',
      'vendor.mediatek.hardware.pq_aidl-V7-ndk'): lib_fixup_vendor_suffix,
 }
-
 
 blob_fixups: blob_fixups_user_type = {
     'vendor/lib64/hw/audio.primary.mediatek.so': blob_fixup()
@@ -75,7 +71,6 @@ blob_fixups: blob_fixups_user_type = {
      'vendor/lib64/libmtkcam_grallocutils_aidlv1helper.so'): blob_fixup()
         .replace_needed('android.hardware.graphics.allocator-V1-ndk.so', 'android.hardware.graphics.allocator-V2-ndk.so')
         .replace_needed('android.hardware.graphics.common-V4-ndk.so', 'android.hardware.graphics.common-V7-ndk.so')
-        # same libui unification as the camera blobs below
         .replace_needed('libui.so', 'libui-v34.so'),
 
     ('odm/lib64/libTrueSight.so',
@@ -132,14 +127,6 @@ blob_fixups: blob_fixups_user_type = {
         .replace_needed('libtinyxml2.so', 'libtinyxml2-v34.so')
         .replace_needed('libui.so', 'libui-v34.so'),
 
-    # GraphicBufferMapper::lock/unlock (old libui API removed in A16).
-    #
-    # mihal drags the rest of the camera stack with it: everything below shares
-    # android::GraphicBuffer objects with it, and a process holding both libui
-    # and libui-v34 ends up with two layouts of that class under the same symbol
-    # names. The mismatch corrupts the heap in the vendor tract - caught with
-    # malloc_debug guard on 2026-08-16 (CORRUPTED REAR GUARD in
-    # RealtimePostProcessor::deleteRecord) and gone once these are relinked.
     ('vendor/lib64/libmicamera_hal_core.so',
      'vendor/lib64/libcom.xiaomi.ecoenginemonitor.so',
      'vendor/lib64/libcom.xiaomi.grallocutils.so',
@@ -153,18 +140,12 @@ blob_fixups: blob_fixups_user_type = {
      'odm/lib64/camera/plugins/com.xiaomi.plugin.videofilter.so'): blob_fixup()
         .replace_needed('libui.so', 'libui-v34.so'),
 
-    # plain-C SetTaskProfiles came from VNDK v34 libprocessgroup on stock
     'vendor/lib64/libcameraopt.so': blob_fixup()
         .add_needed('libprocessgroup_shim.so'),
 
-    # libmiface carries a vestigial DT_NEEDED on libdumpstateutil, which is a
-    # /system library the vendor namespace cannot reach. It imports ZERO symbols
-    # from it (checked: 0 of its 33 exports are undefined in libmiface), so the
-    # entry is simply dropped instead of shipping a system lib into /vendor.
     'vendor/lib64/libmiface.so': blob_fixup()
         .remove_needed('libdumpstateutil.so'),
 
-    # remosaic_process_gain_set exporter must be loaded first (BIND_NOW)
     'odm/lib64/libmiremosaic.so': blob_fixup()
         .add_needed('libremosaic_wrapper.so'),
 
@@ -191,9 +172,6 @@ blob_fixups: blob_fixups_user_type = {
         .replace_needed('libtinyxml2.so', 'libtinyxml2-v34.so')
         .replace_needed('libui.so', 'libui-v34.so'),
 
-    # Stock names this jar androidx.camera.extensions.impl.jar. It is installed
-    # as ...impl.xiaomi.jar (see proprietary-files.txt) so it cannot collide with
-    # the AOSP sample module of the same name; point the permission XML at it.
     'vendor/etc/permissions/camera_extensions.xml': blob_fixup()
         .regex_replace(r'/androidx\.camera\.extensions\.impl\.jar',
                        '/androidx.camera.extensions.impl.xiaomi.jar'),

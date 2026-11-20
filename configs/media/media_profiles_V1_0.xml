@@ -68,12 +68,7 @@
 <!ATTLIST AudioDecoderCap name (wma) #REQUIRED>
 <!ATTLIST AudioDecoderCap enabled (true|false) #REQUIRED>
 ]>
-<!--
-     This file is used to declare the multimedia profiles and capabilities
-     on an android-powered device.
--->
 <MediaSettings>
-    <!-- Each camcorder profile defines a set of predefined configuration parameters -->
     <CamcorderProfiles cameraId="0">
         <EncoderProfile quality="low" fileFormat="mp4" duration="30">
             <Video codec="h264"
@@ -1689,11 +1684,6 @@
     <EncoderOutputFileFormat name="mp4" />
     <EncoderOutputFileFormat name="3gp" />
     
-    <!--
-         If a codec is not enabled, it is invisible to the applications
-         In other words, the applications won't be able to use the codec
-         or query the capabilities of the codec at all if it is disabled
-    -->
     <VideoEncoderCap name="h264" enabled="true"
         minBitRate="64000" maxBitRate="50000000"
         minFrameWidth="176" maxFrameWidth="3840"
@@ -1734,13 +1724,6 @@
         minBitRate="5525" maxBitRate="12200"
         minSampleRate="8000" maxSampleRate="8000"
         minChannels="1" maxChannels="1" />
-    <!--
-        FIXME:
-        We do not check decoder capabilities at present
-        At present, we only check whether windows media is visible
-        for TEST applications. For other applications, we do
-        not perform any checks at all.
-    -->
     <VideoDecoderCap name="wmv" enabled="true"/>
     <AudioDecoderCap name="wma" enabled="true"/>
 </MediaSettings>

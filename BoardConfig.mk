@@ -19,10 +19,6 @@ TARGET_NO_BOOTLOADER := true
 # Display
 TARGET_SCREEN_DENSITY := 480
 
-# Run HWUI on Vulkan (emits ro.hwui.use_vulkan, which the build otherwise leaves
-# empty = GL). Pairs with debug.renderengine.backend=skiavk in vendor.prop: with
-# BOTH on Vulkan the notification shade's blur fits the 144Hz frame budget
-# (12% janky frames vs 26% on GL) - measurement table in vendor.prop.
 TARGET_USES_VULKAN := true
 
 # HIDL
@@ -57,25 +53,20 @@ BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_MKBOOTIMG_ARGS += --dtb_offset $(BOARD_DTB_OFFSET)
 BOARD_MKBOOTIMG_INIT_ARGS += --header_version $(BOARD_INIT_BOOT_HEADER_VERSION)
 
-BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/system_dlkm.modules.load))
-BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/vendor_dlkm.modules.load))
-BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/vendor_ramdisk.modules.load))
-BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/vendor_ramdisk.modules.load.recovery))
-
+TARGET_NO_KERNEL_OVERRIDE := true
+TARGET_KERNEL_SOURCE := $(KERNEL_PATH)/kernel-headers
 TARGET_PREBUILT_KERNEL := $(KERNEL_PATH)/$(BOARD_KERNEL_IMAGE_NAME)
-TARGET_PREBUILT_KERNEL_HEADERS := $(KERNEL_PATH)/kernel-uapi-headers.tar.gz
 BOARD_PREBUILT_DTBIMAGE_DIR := $(KERNEL_PATH)/dtb
 
-BOARD_KERNEL_MODULE_DIR := $(KERNEL_PATH)/modules
-BOARD_SYSTEM_KERNEL_MODULES := $(addprefix $(BOARD_KERNEL_MODULE_DIR)/,$(BOARD_SYSTEM_KERNEL_MODULES_LOAD))
-BOARD_VENDOR_KERNEL_MODULES := $(addprefix $(BOARD_KERNEL_MODULE_DIR)/,$(BOARD_VENDOR_KERNEL_MODULES_LOAD))
-ALL_VENDOR_RAMDISK_MODULES := $(sort $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD) $(BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD))
-BOARD_VENDOR_RAMDISK_KERNEL_MODULES := $(addprefix $(BOARD_KERNEL_MODULE_DIR)/,$(ALL_VENDOR_RAMDISK_MODULES))
+BOARD_SYSTEM_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/system_dlkm/*.ko)
+BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.system))
 
-BOARD_VENDOR_KERNEL_MODULES += \
-    $(BOARD_KERNEL_MODULE_DIR)/gps_drv_dl_v051.ko \
-    $(BOARD_KERNEL_MODULE_DIR)/gps_pwr.ko \
-    $(BOARD_KERNEL_MODULE_DIR)/gps_scp.ko
+BOARD_VENDOR_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/vendor_dlkm/*.ko)
+BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.vendor))
+
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/vendor_ramdisk/*.ko)
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.vendor_ramdisk))
+BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.recovery))
 
 # Partitions
 AB_OTA_PARTITIONS += \
@@ -149,8 +140,12 @@ TARGET_USERIMAGES_USE_F2FS := true
 # SEPolicy
 include device/mediatek/sepolicy_vndr/SEPolicy.mk
 BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
+ifneq ($(wildcard vendor/xiaomi/degas-dolby/fx/sepolicy/vendor),)
 BOARD_SEPOLICY_DIRS += vendor/xiaomi/degas-dolby/fx/sepolicy/vendor
+endif
+ifneq ($(wildcard vendor/xiaomi/degas-dolby/codec/sepolicy/vendor),)
 BOARD_SEPOLICY_DIRS += vendor/xiaomi/degas-dolby/codec/sepolicy/vendor
+endif
 ifneq ($(wildcard vendor/xiaomi/degas-charge/sepolicy/vendor),)
 BOARD_SEPOLICY_DIRS += vendor/xiaomi/degas-charge/sepolicy/vendor
 endif
@@ -177,7 +172,6 @@ BOARD_AVB_VBMETA_VENDOR_ROLLBACK_INDEX := $(PLATFORM_SECURITY_PATCH_TIMESTAMP)
 BOARD_AVB_VBMETA_VENDOR_ROLLBACK_INDEX_LOCATION := 4
 BOARD_MOVE_GSI_AVB_KEYS_TO_VENDOR_BOOT := true
 
-# Using sha256 for dm-verity partitions.
 BOARD_AVB_SYSTEM_ADD_HASHTREE_FOOTER_ARGS += --hash_algorithm sha256
 BOARD_AVB_SYSTEM_OTHER_ADD_HASHTREE_FOOTER_ARGS += --hash_algorithm sha256
 BOARD_AVB_SYSTEM_EXT_ADD_HASHTREE_FOOTER_ARGS += --hash_algorithm sha256
@@ -208,15 +202,8 @@ WIFI_FEATURE_HOSTAPD_11AX := true
 WIFI_FEATURE_SUPPLICANT_11AX := true
 WPA_SUPPLICANT_VERSION := VER_0_8_X
 
-# Inherit the proprietary files
 include vendor/xiaomi/degas/BoardConfigVendor.mk
 
-# Allow ELF prebuilts in PRODUCT_COPY_FILES (restored vendor blobs)
 BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
 
-# gen4m cannot parse NL80211_WPA_VERSION_3 in connect (breaks WPA3/SAE);
-# needs the CONFIG_DRIVER_NL80211_MTK exemption in our wpa_supplicant fork.
-# The namespace MUST be wpa_supplicant_8: the wpa_supplicant/nl80211_driver
-# variable only feeds wpa_supplicant_cflags_defaults, which no module uses, so
-# the guard silently never reaches the vendor supplicant binary.
 $(call soong_config_set_bool,wpa_supplicant_8,board_wlan_mtk_gen4m,true)

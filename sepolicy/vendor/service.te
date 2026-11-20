@@ -1,21 +1,14 @@
-# Camera
 type vendor_hal_camera_bgservice, protected_service, service_manager_type, hal_service_type;
 
-# Display
 type vendor_hal_displayfeature_service, protected_service, service_manager_type, hal_service_type;
 
-# Mfido
 type hal_mfidoca_service, protected_service, service_manager_type, hal_service_type;
 
-# Mlipay
 type hal_mlipay_service, protected_service, service_manager_type, hal_service_type;
 
-# Mtdservice
 type hal_mtdservice_service, protected_service, service_manager_type, hal_service_type;
 
-# MiSys / HypSys
 type hal_misys_vendor_service, protected_service, service_manager_type, hal_service_type;
 type hal_misyscore_service, protected_service, service_manager_type, hal_service_type;
 
-# Touch
 type vendor_hal_touchfeature_service, protected_service, service_manager_type, hal_service_type;

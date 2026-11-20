@@ -19,27 +19,7 @@ import android.provider.Settings
 import android.util.Log
 import android.view.Display
 
-/**
- * Arms the touch controller's double-tap-to-wake gesture.
- *
- * The kernel side needs nothing from us: both touch controllers degas ships with
- * already decode the gesture and report it as KEY_WAKEUP (143), which Generic.kl
- * maps to WAKEUP, so the framework wakes the screen on its own. What is missing
- * is that nobody tells the panel to look for the gesture in the first place.
- *
- * Stock drives this through Touch_Doubletap_Mode on the touchfeature HAL, and so
- * do we. The alternative - writing the goodix driver's double_tap_enable sysfs
- * node - is deliberately not used: degas is dual-sourced (its dtbo carries a
- * goodix and a focaltech property set on the same pins, and both firmwares ship
- * in odm/firmware), and the focaltech driver exposes no such node. Going through
- * the HAL works whichever controller probed.
- *
- * config_supportDoubleTapWake in the frameworks overlay is what puts the toggle
- * in Settings and makes PowerManagerService track the secure setting; this
- * service is the half that reaches the hardware.
- */
 class TouchGestureService : Service() {
-
     private val handler = Handler(Looper.getMainLooper())
 
     private val settingsObserver =
@@ -55,9 +35,7 @@ class TouchGestureService : Service() {
 
             override fun onDisplayChanged(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) return
-                // The driver reads the flag when it puts the panel into gesture
-                // mode, so make sure it is current by the time the screen goes
-                // dark. Re-asserting an unchanged value is a no-op for the HAL.
+
                 if (getDisplayState() != Display.STATE_ON) applySetting()
             }
         }

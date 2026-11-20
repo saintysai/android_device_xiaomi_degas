@@ -12,12 +12,6 @@ ro.vendor.vodata_support=1
 vendor.rild.libargs=-d /dev/ttyC0
 vendor.rild.libpath=mtk-ril.so
 
-# Logging
-# citsensorservice and the composer's CWB path log every ambient-light sample
-# (~220 lines/s, over half of all logcat traffic on this device) and they use
-# the E level for routine output, so a level filter is not enough. Silencing
-# them cuts the daemon's CPU roughly in half while the screen is off.
-# Re-enable any of them at runtime with `setprop log.tag.<tag> V`.
 log.tag.HfManager=S
 log.tag.libsensor-displayInfoManager=S
 log.tag.libsensor-displayalgo=S
@@ -35,9 +29,7 @@ ro.mi.os.version.incremental=OS3.0.4.0.WNEMIXM
 ro.miui.build.region=global
 ro.product.marketname=Xiaomi 14T
 
-# MiuiCamera 6.7 is re-signed; skip its own signature self-check
 camera.debug.safe.check.disable=true
 
-# Camera (must live on system_ext so init sets exported_system_prop)
 ro.product.camera.livephoto.support=3
 ro.theme_customize=LCC

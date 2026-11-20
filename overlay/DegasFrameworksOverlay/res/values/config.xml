@@ -4,156 +4,45 @@
      SPDX-License-Identifier: Apache-2.0
 -->
 <resources>
-    <!-- Enables or disables haptic effect when the text insertion/selection handle is moved
-         manually by the user. Off by default, since the expected haptic feedback may not be
-         available on some devices. -->
     <bool name="config_enableHapticTextHandle">true</bool>
 
-    <!-- Flag indicating whether we should enable the automatic brightness.
-         Software implementation will be used if config_hardware_auto_brightness_available is not set -->
     <bool name="config_automatic_brightness_available">true</bool>
 
-    <!-- Fast brightness animation ramp rate in brightness units per second-->
     <integer name="config_brightness_ramp_rate_fast">4932</integer>
 
-    <!-- Slow brightness animation ramp rate in brightness units per second-->
     <integer name="config_brightness_ramp_rate_slow">3946</integer>
 
-    <!-- If this is true, the screen will come on when you unplug usb/power/whatever. -->
     <bool name="config_unplugTurnsOnScreen">true</bool>
 
-    <!-- Indicate available ColorDisplayManager.COLOR_MODE_xxx. -->
     <integer-array name="config_availableColorModes">
-        <item>257</item> <!-- standard -->
-        <item>258</item> <!-- vivid -->
-        <item>256</item> <!-- saturated -->
-        <item>269</item> <!-- expert original -->
-        <item>268</item> <!-- expert P3 -->
-        <item>267</item> <!-- expert sRGB -->
-    </integer-array>
+        <item>257</item>        <item>258</item>        <item>256</item>        <item>269</item>        <item>268</item>        <item>267</item>    </integer-array>
 
-    <!-- Indicate whether to allow the device to suspend when the screen is off
-         due to the proximity sensor.  This resource should only be set to true
-         if the sensor HAL correctly handles the proximity sensor as a wake-up source.
-         Otherwise, the device may fail to wake out of suspend reliably.
-         The default is false. -->
     <bool name="config_suspendWhenScreenOffDueToProximity">true</bool>
 
-    <!-- Shutdown if the battery temperature exceeds (this value * 0.1) Celsius. -->
     <integer name="config_shutdownBatteryTemperature">580</integer>
 
-    <!-- Minimum screen brightness setting allowed by power manager.
-         -2 is invalid so setting will resort to int value specified above.
-         Set this to 0.0 to allow screen to go to minimal brightness.
-         The user is forbidden from setting the brightness below this level. -->
     <item name="config_screenBrightnessSettingMinimumFloat" format="float" type="dimen">0.000854597</item>
 
-    <!-- Maximum screen brightness allowed by the power manager.
-         -2 is invalid so setting will resort to int value specified above.
-         Set this to 1.0 for maximum brightness range.
-         The user is forbidden from setting the brightness above this level. -->
     <item name="config_screenBrightnessSettingMaximumFloat" format="float" type="dimen">1.0</item>
 
-    <!-- Default screen brightness setting set.
-         -2 is invalid so setting will resort to int value specified above.
-         Must be in the range specified by minimum and maximum. -->
     <item name="config_screenBrightnessSettingDefaultFloat" format="float" type="dimen">0.07496032</item>
 
-    <!-- Screen brightness used to dim the screen while dozing in a very low power state.
-         May be less than the minimum allowed brightness setting
-         that can be set by the user. -->
     <integer name="config_screenBrightnessDoze">5</integer>
 
-    <!-- Float counterpart of config_screenBrightnessDoze - DisplayPowerController
-         reads THIS one, the integer above is only a legacy fallback.
-         0 makes the settled AOD brighter - the luminance then comes purely from
-         the DDIC's own AOD mode (mi_display doze_brightness, HBM 60nit) and no
-         backlight value is written on top of it. But 0 costs two real bugs, so
-         it is deliberately non-zero for now:
-
-         - Entering AOD from the lock screen, DozeScreenState holds the display
-           in STATE_ON for ENTER_DOZE_DELAY (4 s) so the lock->AOD animation is
-           visible, and asks for this brightness while it does. At 0 that window
-           is simply black, which is the "screen goes black, AOD shows up a
-           couple of seconds later" complaint.
-         - The panel refuses MI_DISP_IOCTL_SET_LOCAL_HBM below bl_level 15
-           (mi_disp_panel_send_lhbm buckets: 15..1308 / 1309..11467 /
-           11468..16383), and at 0 the level sits at 1 - so the fingerprint is
-           never lit and unlock from AOD only works in the entry window where the
-           backlight has not dropped yet.
-
-         5/255 matches config_screenBrightnessDoze above and lands at dbv ~336,
-         comfortably inside the first LHBM bucket. The settled AOD is dimmer than
-         with 0; that is accepted until brightness is driven at the DDIC level
-         through displayfeature's mipi_rw path, which is the same work as raising
-         the manual maximum. -->
     <item name="config_screenBrightnessDozeFloat" format="float" type="dimen">0.019607844</item>
 
-    <!-- Doze / ambient display. degas has all of the vendor side in place
-         (ro.vendor.mtk_aod_support=1, which is what MTK's hwcomposer's
-         displayGetDozeSupport gates on, plus the n12a panel driver implements
-         set_doze_brightness/get_doze_brightness/doze_disable/doze_post_disp_on/
-         doze_suspend), but framework-res ships config_dozeComponent empty and
-         config_dozeAlwaysOnDisplayAvailable false, which disables doze/AOD
-         outright - so the panel never leaves normal mode and the kernel refuses
-         doze ("panel_set_doze_brightness normal mode cannot set doze
-         brightness"). Point it at SystemUI's DozeService and declare AOD. -->
     <string name="config_dozeComponent" translatable="false">com.android.systemui/com.android.systemui.doze.DozeService</string>
     <bool name="config_dozeAlwaysOnDisplayAvailable">true</bool>
 
-    <!-- UDFPS while dozing. With the screen in DOZE the touchscreen no longer
-         delivers ordinary input events, so SystemUI's UdfpsView never sees an
-         ACTION_DOWN and the fingerprint HAL is never told a finger is present.
-         The AOSP path for this is DozeSensors' udfps-long-press TriggerSensor,
-         which fires DozeTriggers -> UdfpsController.onAodInterrupt(),
-         dispatching the finger-down straight to the HAL while the device stays
-         dozing; it is gated on this resource, and framework-res ships it empty.
-
-         This is NOT MediaTek's xiaomi.sensor.fod, which we used to point at
-         here: that one is served by the SCP sub-HAL, while degas processes touch
-         frames in userspace (THP), so the SCP never sees a finger and the sensor
-         only ever emitted garbage on movement - producing spurious FOD circles
-         and stacked failed attempts. Ours reads the goodix driver's FOD key from
-         the input device instead; see sensors/UdfpsSensorSubHal.cpp. -->
     <string name="config_dozeUdfpsLongPressSensorType" translatable="false">org.degas.sensor.udfps_long_press</string>
 
-    <!-- Stability requirements in milliseconds for accepting a new brightness level.  This is used
-         for debouncing the light sensor.  Different constants are used to debounce the light sensor
-         when adapting to brighter or darker environments.  This parameter controls how quickly
-         brightness changes occur in response to an observed change in light level that exceeds the
-         hysteresis threshold. -->
     <integer name="config_autoBrightnessBrighteningLightDebounce">1000</integer>
     <integer name="config_autoBrightnessDarkeningLightDebounce">1000</integer>
 
-    <!-- The maximum range of gamma adjustment possible using the screen
-         auto-brightness adjustment setting. -->
     <fraction name="config_autoBrightnessAdjustmentMaxGamma">100.0%</fraction>
 
-    <!-- Screen brightness used to dim the screen when the user activity
-         timeout expires.  May be less than the minimum allowed brightness setting
-         that can be set by the user. -->
     <item name="config_screenBrightnessDimFloat" format="float" type="dimen">0.000854597</item>
 
-    <!-- Array of light sensor lux values to define our levels for auto backlight brightness support.
-         The N entries of this array define N + 1 control points as follows:
-         (1-based arrays)
-
-         Point 1:            (0, value[1]):             lux <= 0
-         Point 2:     (level[1], value[2]):  0        < lux <= level[1]
-         Point 3:     (level[2], value[3]):  level[2] < lux <= level[3]
-         ...
-         Point N+1: (level[N], value[N+1]):  level[N] < lux
-
-         The control points must be strictly increasing.  Each control point
-         corresponds to an entry in the brightness backlight values arrays.
-         For example, if lux == level[1] (first element of the levels array)
-         then the brightness will be determined by value[2] (second element
-         of the brightness values array).
-
-         Spline interpolation is used to determine the auto-brightness
-         backlight values for lux levels between these control points.
-
-         Must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessLevels">
         <item>1</item>
         <item>2</item>
@@ -285,11 +174,6 @@
         <item>100000</item>
     </integer-array>
 
-    <!-- Array of output values for LCD backlight corresponding to the lux values
-         in the config_autoBrightnessLevels array.  This array should have size one greater
-         than the size of the config_autoBrightnessLevels array.
-         The brightness values must be between 0 and 255 and be non-decreasing.
-         This must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessLcdBacklightValues">
         <item>36</item>
         <item>54</item>
@@ -401,18 +285,6 @@
         <item>4095</item>
     </integer-array>
 
-    <!-- Array of desired screen brightness in nits corresponding to the lux values
-         in the config_autoBrightnessLevels array. The display brightness is defined as the measured
-         brightness of an all-white image.
-
-         If this is defined then:
-            - config_autoBrightnessLcdBacklightValues should not be defined
-            - config_screenBrightnessNits must be defined
-            - config_screenBrightnessBacklight must be defined
-
-         This array should have size one greater than the size of the config_autoBrightnessLevels
-         array. The brightness values must be non-negative and non-decreasing. This must be
-         overridden in platform specific overlays -->
     <array name="config_autoBrightnessDisplayValuesNits">
         <item>3.5</item>
         <item>7.7</item>
@@ -545,17 +417,6 @@
         <item>1200.0</item>
     </array>
 
-    <!-- Array of ambient lux threshold values. This is used for determining hysteresis constraint
-         values by calculating the index to use for lookup and then setting the constraint value
-         to the corresponding value of the array. The new brightening hysteresis constraint value
-         is the n-th element of config_ambientBrighteningThresholds, and the new darkening
-         hysteresis constraint value is the n-th element of config_ambientDarkeningThresholds.
-
-         The (zero-based) index is calculated as follows: (MAX is the largest index of the array)
-         condition                       calculated index
-         value < level[0]                0
-         level[n] <= value < level[n+1]  n+1
-         level[MAX] <= value             MAX+1 -->
     <integer-array name="config_ambientThresholdLevels">
         <item>2</item>
         <item>10</item>
@@ -566,12 +427,6 @@
         <item>4000</item>
     </integer-array>
 
-    <!-- Array of hysteresis constraint values for brightening, represented as tenths of a
-         percent. The length of this array is assumed to be one greater than
-         config_ambientThresholdLevels. The brightening threshold is calculated as
-         lux * (1.0f + CONSTRAINT_VALUE). When the current lux is higher than this threshold,
-         the screen brightness is recalculated. See the config_ambientThresholdLevels
-         description for how the constraint value is chosen. -->
     <integer-array name="config_ambientBrighteningThresholds">
         <item>2</item>
         <item>6</item>
@@ -583,12 +438,6 @@
         <item>1000</item>
     </integer-array>
 
-    <!-- Array of hysteresis constraint values for darkening, represented as tenths of a
-         percent. The length of this array is assumed to be one greater than
-         config_ambientThresholdLevels. The darkening threshold is calculated as
-         lux * (1.0f - CONSTRAINT_VALUE). When the current lux is lower than this threshold,
-         the screen brightness is recalculated. See the config_ambientThresholdLevels
-         description for how the constraint value is chosen. -->
     <integer-array name="config_ambientDarkeningThresholds">
         <item>800</item>
         <item>800</item>
@@ -600,194 +449,53 @@
         <item>500</item>
     </integer-array>
 
-    <!-- Array of hysteresis constraint values for brightening, represented as tenths of a
-         percent. The length of this array is assumed to be one greater than
-         config_screenThresholdLevels. The brightening threshold is calculated as
-         screenBrightness * (1.0f + CONSTRAINT_VALUE). When the new screen brightness is higher
-         than this threshold, it is applied. See the config_screenThresholdLevels description for
-         how the constraint value is chosen. -->
     <integer-array name="config_screenBrighteningThresholds">
         <item>0</item>
     </integer-array>
 
-    <!-- Array of hysteresis constraint values for darkening, represented as tenths of a
-         percent. The length of this array is assumed to be one greater than
-         config_screenThresholdLevels. The darkening threshold is calculated as
-         screenBrightness * (1.0f - CONSTRAINT_VALUE). When the new screen brightness is lower than
-         this threshold, it is applied. See the config_screenThresholdLevels description for how
-         the constraint value is chosen. -->
     <integer-array name="config_screenDarkeningThresholds">
         <item>0</item>
     </integer-array>
 
-    <!-- Whether a software navigation bar should be shown. NOTE: in the future this may be
-         autodetected from the Configuration. -->
     <bool name="config_showNavigationBar">true</bool>
 
-    <!-- config_dozeComponent and config_dozeAlwaysOnDisplayAvailable belong here
-         in AOSP's ordering, but they are already set further up together with the
-         rest of the doze configuration. aapt2 rejects a resource defined twice in
-         one file, so do not add them back here. -->
-
-    <!-- Doze: should the TYPE_PICK_UP_GESTURE sensor be used as a pulse signal. -->
     <bool name="config_dozePulsePickup">true</bool>
 
-    <!-- Control whether the always on display mode is enabled by default. This value will be used
-         during initialization when the setting is still null. -->
     <bool name="config_dozeAlwaysOnEnabled">false</bool>
 
-    <!-- If AOD can show an ambient version of the wallpaper -->
     <bool name="config_dozeSupportsAodWallpaper">true</bool>
 
-    <!-- Power Management: Specifies whether to decouple the auto-suspend state of the
-         device from the display on/off state.
-
-         When false, autosuspend_disable() will be called before the display is turned on
-         and autosuspend_enable() will be called after the display is turned off.
-         This mode provides best compatibility for devices using legacy power management
-         features such as early suspend / late resume.
-
-         When true, autosuspend_display() and autosuspend_enable() will be called
-         independently of whether the display is being turned on or off.  This mode
-         enables the power manager to suspend the application processor while the
-         display is on.
-
-         This resource should be set to "true" when a doze component has been specified
-         to maximize power savings but not all devices support it.
-
-         Refer to autosuspend.h for details.
-    -->
     <bool name="config_powerDecoupleAutoSuspendModeFromDisplay">true</bool>
 
-    <!-- Power Management: Specifies whether to decouple the interactive state of the
-         device from the display on/off state.
-
-         When false, setInteractive(..., true) will be called before the display is turned on
-         and setInteractive(..., false) will be called after the display is turned off.
-         This mode provides best compatibility for devices that expect the interactive
-         state to be tied to the display state.
-
-         When true, setInteractive(...) will be called independently of whether the display
-         is being turned on or off.  This mode enables the power manager to reduce
-         clocks and disable the touch controller while the display is on.
-
-         This resource should be set to "true" when a doze component has been specified
-         to maximize power savings but not all devices support it.
-
-         Refer to power.h for details.
-    -->
     <bool name="config_powerDecoupleInteractiveModeFromDisplay">true</bool>
 
-    <!-- Whether WiFi display is supported by this device.
-         There are many prerequisites for this feature to work correctly.
-         Here are a few of them:
-         * The WiFi radio must support WiFi P2P.
-         * The WiFi radio must support concurrent connections to the WiFi display and
-           to an access point.
-         * The Audio Server audio_policy_configuration.xml file must specify a rule for
-           the "r_submix" remote submix module.  This module is used to record and stream system
-           audio output to the WiFi display encoder in the media server.
-         * The remote submix module "audio.r_submix.default" must be installed on the device.
-         * The device must be provisioned with HDCP keys (for protected content).
-    -->
     <bool name="config_enableWifiDisplay">true</bool>
 
-    <!-- When true use the linux /dev/input/event subsystem to detect the switch changes
-         on the headphone/microphone jack. When false use the older uevent framework. -->
     <bool name="config_useDevInputEventForAudioJack">true</bool>
 
-    <!-- Number of physical SIM slots on the device. This includes both eSIM and pSIM slots, and
-         is not necessarily the same as the number of phones/logical modems supported by the device.
-         For example, a multi-sim device can have 2 phones/logical modems, but 3 physical slots,
-         or a single SIM device can have 1 phones/logical modems, but 2 physical slots (one eSIM
-         and one pSIM) -->
     <integer name="config_num_physical_slots">2</integer>
 
-    <!-- If true, the display will be shifted around in ambient mode. -->
     <bool name="config_enableBurnInProtection">true</bool>
 
-    <!-- The bounding path of the cutout region of the main built-in display.
-         Must either be empty if there is no cutout region, or a string that is parsable by
-         {@link android.util.PathParser}.
-
-         The path is assumed to be specified in display coordinates with pixel units and in
-         the display's native orientation, with the origin of the coordinate system at the
-         center top of the display. Optionally, you can append either `@left` or `@right` to the
-         end of the path string, in order to change the path origin to either the top left,
-         or top right of the display.
-
-         To facilitate writing device-independent emulation overlays, the marker `@dp` can be
-         appended after the path string to interpret coordinates in dp instead of px units.
-         Note that a physical cutout should be configured in pixels for the best results.
-
-         If the display supports multiple resolutions, please define the path config based on the
-         highest resolution so that it can be scaled correctly in each resolution.
-
-         Example for a 10px x 10px square top-center cutout:
-                <string ...>M -5,0 L -5,10 L 5,10 L 5,0 Z</string>
-         Example for a 10dp x 10dp square top-center cutout:
-                <string ...>M -5,0 L -5,10 L 5,10 L 5,0 Z @dp</string>
-
-         @see https://www.w3.org/TR/SVG/paths.html#PathData
-         -->
     <string name="config_mainBuiltInDisplayCutout" translatable="false">M 0,0 H -30 V 138 H 30 V 0 H 0 Z</string>
 
-    <!-- Enable Zram writeback feature to allow unused pages in zram be written to flash. -->
     <bool name="config_zramWriteback">true</bool>
 
-    <!-- The default refresh rate for a given device. Change this value to set a higher default
-         refresh rate. If the hardware composer on the device supports display modes with a higher
-         refresh rate than the default value specified here, the framework may use those higher
-         refresh rate modes if an app chooses one by setting preferredDisplayModeId or calling
-         setFrameRate().
-         If a non-zero value is set for config_defaultPeakRefreshRate, then
-         config_defaultRefreshRate may be set to 0, in which case the value set for
-         config_defaultPeakRefreshRate will act as the default frame rate. -->
     <integer name="config_defaultRefreshRate">0</integer>
 
-    <!-- The default peak refresh rate for a given device. Change this value if you want to prevent
-         the framework from using higher refresh rates, even if display modes with higher refresh
-         rates are available from hardware composer. Only has an effect if the value is
-         non-zero. -->
     <integer name="config_defaultPeakRefreshRate">144</integer>
 
-    <!-- Hold 120 Hz for as long as the UDFPS overlay is up (patches/frameworks_base/0003).
-         Local HBM reprograms the panel to 120 Hz, and any display mode change while it is lit
-         shows as a full-screen brightness flash; stock does the same through
-         ro.vendor.display.fod_monitor_default_fps=120, from ENROLL_START/AUTH_START to the
-         matching stop. -->
     <integer name="config_udfpsRefreshRate">120</integer>
 
-    <!-- Whether the device supports double tap to wake. The touch controller decodes the
-         gesture itself and reports KEY_WAKEUP; TouchGestureService in XiaomiParts arms it
-         through Touch_Doubletap_Mode on the touchfeature HAL. -->
     <bool name="config_supportDoubleTapWake">true</bool>
 
-    <!-- Whether or not wcg (wide color gamut) should be enabled on this device,
-         we only enabled it while the device has ability of mixed color spaces composition -->
     <bool name="config_enableWcgMode">true</bool>
 
-    <!-- A string config in svg path format for the main display shape.
-         (@see https://www.w3.org/TR/SVG/paths.html#PathData).
-
-         This config must be set unless:
-         1. {@link Configuration#isScreenRound} is true which means the display shape is circular
-            and the system will auto-generate a circular shape.
-         2. The display has no rounded corner and the system will auto-generate a rectangular shape.
-         (@see DisplayShape#createDefaultDisplayShape)
-
-         Note: If the display supports multiple resolutions, please define the path config based on
-         the highest resolution so that it can be scaled correctly in each resolution. -->
     <string name="config_mainDisplayShape" translatable="false">M20 0h1040s20 0 20 20v2360s0 20 -20 20h-1040s-20 0 -20 -20v-2360s0 -20 20 -20</string>
 
-    <!-- Whether to enable fp unlock when screen turns off on udfps devices -->
     <bool name="config_screen_off_udfps_enabled">true</bool>
 
-    <!-- Default value for fp screen off unlock toggle, it only works for the devices that support
-         fp screen off unlock-->
     <bool name="config_screen_off_udfps_default_on">true</bool>
 
-    <!-- Spatial audio: head tracking is on by default for a newly connected device,
-         as in the stock overlay (AospFrameworkResOverlay) -->
     <bool name="config_spatial_audio_head_tracking_enabled_default">true</bool>
 </resources>

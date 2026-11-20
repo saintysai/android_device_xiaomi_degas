@@ -22,7 +22,6 @@ import android.util.Log
 import androidx.core.os.postDelayed
 
 class ColorService : Service() {
-
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var ambientConfig: AmbientDisplayConfiguration
     private var isDozing = false
@@ -56,10 +55,7 @@ class ColorService : Service() {
                             isDozing = false
                             return
                         }
-                        /**
-                         * Use standard color mode in AOD to prevent black pixels from illuminating,
-                         * thus reducing power consumption.
-                         */
+
                         isDozing = true
                         handler.removeCallbacksAndMessages(null)
                         if (DEBUG) Log.d(TAG, "Entered AOD, set color mode to standard")
@@ -159,7 +155,7 @@ class ColorService : Service() {
 
     companion object {
         private const val TAG = "ColorService"
-        //private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
+
         private val DEBUG = true
 
         private val DEFAULT_COLOR_MODE = SystemProperties.getInt("persist.sys.sf.native_mode", 0)

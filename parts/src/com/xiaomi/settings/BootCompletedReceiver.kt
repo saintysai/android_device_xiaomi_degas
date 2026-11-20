@@ -19,7 +19,6 @@ import com.xiaomi.settings.telephony.ImsHealService
 import com.xiaomi.settings.touch.TouchGestureService
 
 class BootCompletedReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
         if (DEBUG) Log.d(TAG, "Received boot completed intent: ${intent.action}")
         when (intent.action) {
@@ -27,7 +26,6 @@ class BootCompletedReceiver : BroadcastReceiver() {
             Intent.ACTION_LOCKED_BOOT_COMPLETED -> onLockedBootCompleted(context)
         }
 
-        // Override HDR types
         val displayManager = context.getSystemService(DisplayManager::class.java)
         displayManager.overrideHdrTypes(
             Display.DEFAULT_DISPLAY,
@@ -41,17 +39,13 @@ class BootCompletedReceiver : BroadcastReceiver() {
     }
 
     private fun onBootCompleted(context: Context) {
-        // Telephony, not display: wait for the full boot rather than the locked
-        // one, so the subscription and the IMS stack are already up.
         ImsHealService.startService(context)
     }
 
     private fun onLockedBootCompleted(context: Context) {
-        // Display
         ColorService.startService(context)
         AodService.startService(context)
 
-        // Touch
         TouchGestureService.startService(context)
     }
 

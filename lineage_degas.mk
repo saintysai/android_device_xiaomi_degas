@@ -12,10 +12,18 @@ $(call inherit-product, device/xiaomi/degas/device.mk)
 
 # Inherit some common LineageOS stuff.
 TARGET_DISABLE_EPPE := true
-# Shown in Settings > About phone (underscores are displayed as spaces).
-AXION_MAINTAINER := Maintained_by_@saiquer
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
+# AxionOS
+AXION_MAINTAINER := saiquer
+AXION_PROCESSOR := MediaTek_Dimensity_8300-Ultra
+AXION_CAMERA_REAR_INFO := 50,50,12
+AXION_CAMERA_FRONT_INFO := 32
+AXION_CPU_SMALL_CORES := 0,1,2,3
+AXION_CPU_BIG_CORES := 4,5,6,7
+TARGET_ENABLE_BLUR := true
+
+# Device identifier
 PRODUCT_BRAND := Xiaomi
 PRODUCT_DEVICE := degas
 PRODUCT_MANUFACTURER := Xiaomi

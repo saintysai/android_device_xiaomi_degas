@@ -11,30 +11,7 @@ import android.os.Parcel
 import android.os.ServiceManager
 import android.util.Log
 
-/**
- * Minimal client for Xiaomi's touchfeature HAL.
- *
- * There is no AIDL definition for vendor.xiaomi.hw.touchfeature in the tree and
- * the interface is not published anywhere, so the two calls we need are issued
- * as raw binder transactions. The transaction codes below were read out of
- * /vendor/lib64/vendor.xiaomi.hw.touchfeature-V1-ndk.so (AIDL assigns them in
- * declaration order, starting at 1):
- *
- *   1 getModeCurValue    5 getModeValue          9 setModeValue
- *   2 getModeDefaultValue 6 getTouchEvent       10 getModeCurValueString
- *   3 getModeMaxValue    7 modeReset            11 getModeWhiteList
- *   4 getModeMinValue    8 setModeLongValue     12 registerCallback
- *                                               13 unregisterCallback
- *                                               14 setModePackageName
- *
- * Note this is deliberately not the /dev/xiaomi-touch ioctl path that
- * UdfpsHandler uses: degas ships a newer xiaomi_touch driver whose ioctl ABI no
- * longer matches the old {disp_id, mode, value} int array, and it rejects those
- * calls outright ("error get hw param size 0 214"). Going through the HAL keeps
- * us on whatever ABI the blob and the kernel agree on.
- */
 object TouchFeatureWrapper {
-
     private const val TAG = "TouchFeatureWrapper"
     private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
 
@@ -44,10 +21,8 @@ object TouchFeatureWrapper {
     private const val TRANSACTION_GET_MODE_CUR_VALUE = 1
     private const val TRANSACTION_SET_MODE_VALUE = 9
 
-    /** Primary touch panel. */
     const val TOUCH_ID_PRIMARY = 0
 
-    /** MODE_TYPE values from the vendor's xiaomi_touch.h. */
     const val MODE_TOUCH_FOD_ENABLE = 10
     const val MODE_TOUCH_DOUBLETAP = 14
 

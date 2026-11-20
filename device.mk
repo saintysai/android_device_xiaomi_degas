@@ -3,16 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-# Enforce generic ramdisk allow list
 $(call inherit-product, $(SRC_TARGET_DIR)/product/generic_ramdisk.mk)
 
-# Enable project quotas and casefolding for emulated storage without sdcardfs
 $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
-# Setup dalvik vm configs
 $(call inherit-product, frameworks/native/build/phone-xhdpi-6144-dalvik-heap.mk)
 
-# A/B
 ifneq ($(WITH_GMS),true)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/launch_with_vendor_ramdisk.mk)
 PRODUCT_SYSTEM_PARTITIONS_FILE_SYSTEM_TYPE ?= ext4
@@ -129,11 +125,8 @@ PRODUCT_VENDOR_LINKER_CONFIG_FRAGMENTS += \
 PRODUCT_PACKAGES += \
     fastbootd
 
-# Face unlock: libmiface links libcamera2ndk_vendor, whose AIDL dependencies live in
-# an APEX on stock and are not extractable, so build it from source instead.
 PRODUCT_PACKAGES += \
     libcamera2ndk_vendor
-
 
 # Fingerprint
 PRODUCT_PACKAGES += \
@@ -154,7 +147,6 @@ PRODUCT_PACKAGES += \
     android.hardware.health-service.degas \
     android.hardware.health-service.degas-recovery
 
-# Health (Lineage charging control)
 PRODUCT_PACKAGES += \
     vendor.lineage.health-service.default
 
@@ -187,7 +179,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/init/init.recovery.mt6897.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.mt6897.rc
 
-# Input device config (goodix touch registers as virtual input)
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/idc/goodix_ts.idc:$(TARGET_COPY_OUT_VENDOR)/usr/idc/goodix_ts.idc
 
@@ -278,8 +269,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     xiaomi-telephony-stub
 
-# mediatek-telephony-common and mediatek-telecom-common are put on the
-# bootclasspath by hardware/mediatek/frameworks/mediatek-frameworks.mk.
 PRODUCT_BOOT_JARS += \
     xiaomi-telephony-stub \
     mediatek-telephony-base \
@@ -311,12 +300,9 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
    sensors.dynamic_sensor_hal
 
-# Supplies the one-shot wake sensor behind config_dozeUdfpsLongPressSensorType;
-# no hardware sensor reports a fingerprint press on this device.
 PRODUCT_PACKAGES += \
    sensors.udfps.degas
 
-# Ours, not the extracted blob, so that the sub-HAL above is listed.
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/sensors/hals.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/hals.conf
 
@@ -389,22 +375,18 @@ PRODUCT_PACKAGES += \
     android.hardware.wifi.direct.prebuilt.xml \
     android.hardware.wifi.passpoint.prebuilt.xml
 
-# Inherit the proprietary files
 $(call inherit-product, vendor/xiaomi/degas/degas-vendor.mk)
 
-# MiuiCamera (stock camera app); its files live outside this repository.
 $(call inherit-product-if-exists, vendor/xiaomi/miuicamera/miuicamera.mk)
 
-# Spatial audio (stock spatializer effect, its data files and properties); the files live
-# outside this repository.
-$(call inherit-product, vendor/xiaomi/degas-dolby/spatial/spatial.mk)
+$(call inherit-product-if-exists, vendor/xiaomi/degas-dolby/spatial/spatial.mk)
 
-# Dolby audio effect (stock libraries, DMS service, settings app).
-$(call inherit-product, vendor/xiaomi/degas-dolby/fx/fx.mk)
+$(call inherit-product-if-exists, vendor/xiaomi/degas-dolby/fx/fx.mk)
 
-# Dolby decoders (stock Codec2 audio and Dolby Vision services).
+ifneq ($(wildcard vendor/xiaomi/degas-dolby/codec/codec.mk),)
 DEGAS_DOLBY_VISION := true
 DEGAS_DOLBY_VISION_ABI_REVIEWED := true
 $(call inherit-product, vendor/xiaomi/degas-dolby/codec/codec.mk)
+endif
 
 $(call inherit-product-if-exists, vendor/xiaomi/degas-charge/charge.mk)
