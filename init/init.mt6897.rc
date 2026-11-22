@@ -9,7 +9,7 @@ import /vendor/etc/init/hw/init.project.rc
 import /vendor/etc/init/hw/init.sensor_2_0.rc
 
 on init
-    # increase sysctl_rmem_max and sysctl_wmem_max values to 2M
+    # increase sysctl_rmem_max and sysctl_wmem_max values to 8M
     write /proc/sys/net/core/wmem_max 8388608
     write /proc/sys/net/core/rmem_max 8388608
 
@@ -99,14 +99,10 @@ on post-fs-data
     chown system cameraserver /mnt/vendor/persist/camera
     chmod 0775 /mnt/vendor/persist/camera
 
-    mkdir /data/vendor/camera
-    chown root system /data/vendor/camera
-    chmod 0771 /data/vendor/camera
-
-    chmod 755 /mnt/vendor/nvcfg/sensor
-    chmod +r /mnt/vendor/nvcfg/sensor/gyro_cali.json
-    chmod +r /mnt/vendor/nvcfg/sensor/gyro_bias.json
-    chmod +r /mnt/vendor/nvcfg/sensor/ois_temp_cali.json
+    chmod 0755 /mnt/vendor/nvcfg/sensor
+    chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_cali.json
+    chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_bias.json
+    chmod 0644 /mnt/vendor/nvcfg/sensor/ois_temp_cali.json
 
     #Create imgsys mount point
     mkdir /data/vendor/imgsys_dump
@@ -239,9 +235,6 @@ on post-fs-data
     #usip
     chmod 0660 /dev/usip
     chown media media /dev/usip
-
-    #Thermal
-    mkdir /data/vendor/thermal/ 0775 system system
 
     #MCUPM log
     chmod 0440 /dev/mcupm
