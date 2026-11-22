@@ -14,6 +14,9 @@ genfscon sysfs /devices/platform/rt-pd-manager/typec/port0/data_role            
 
 genfscon sysfs /devices/virtual/mi_display/disp_feature/disp-DSI-0                                       u:object_r:vendor_sysfs_displayfeature:s0
 
+genfscon sysfs /devices/platform/soc/13000000.mali/devfreq/13000000.mali                                  u:object_r:sysfs_gpu:s0
+genfscon sysfs /devices/virtual/thermal/thermal_message                                                   u:object_r:sysfs_therm:s0
+
 genfscon sysfs /devices/platform/soc/11e10000.dp-tx/extcon                                               u:object_r:sysfs_extcon:s0
 
 genfscon sysfs /devices/virtual/touch/touch_dev                                                          u:object_r:sysfs_touch:s0
