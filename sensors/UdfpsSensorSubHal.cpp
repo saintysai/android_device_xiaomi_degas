@@ -13,11 +13,13 @@
 #include <linux/input.h>
 #include <log/log.h>
 #include <poll.h>
+#include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <utils/SystemClock.h>
 
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -50,8 +52,6 @@ constexpr float kFodCentreX = 610.0f;
 constexpr float kFodCentreY = 2444.0f;
 constexpr float kFodMajor = 105.0f;
 constexpr float kFodMinor = 105.0f;
-
-constexpr int kPollTimeoutMs = 250;
 }
 
 UdfpsSensorSubHal::UdfpsSensorSubHal() {
@@ -105,8 +105,11 @@ Return<Result> UdfpsSensorSubHal::activate(int32_t sensorHandle, bool enabled) {
     }
 
     if (enabled) {
-        startReader();
         mArmed = true;
+        if (!startReader()) {
+            mArmed = false;
+            return Result::INVALID_OPERATION;
+        }
     } else {
         mArmed = false;
         stopReader();
@@ -155,7 +158,7 @@ Return<void> UdfpsSensorSubHal::debug(const hidl_handle& fd,
     bool reading;
     {
         std::lock_guard<std::mutex> lock(mThreadMutex);
-        reading = mThread.joinable();
+        reading = mThread.joinable() && mRunning;
     }
     dprintf(fd->data[0], "degas UDFPS long press: armed=%d, reading input=%d\n",
             mArmed ? 1 : 0, reading ? 1 : 0);
@@ -196,40 +199,79 @@ int UdfpsSensorSubHal::openTouchDevice() {
     return found;
 }
 
-void UdfpsSensorSubHal::startReader() {
+bool UdfpsSensorSubHal::startReader() {
     std::lock_guard<std::mutex> lock(mThreadMutex);
     if (mThread.joinable()) {
-        return;
+        if (mRunning) {
+            return true;
+        }
+        mThread.join();
+        if (mWakeupFd >= 0) {
+            close(mWakeupFd);
+            mWakeupFd = -1;
+        }
     }
 
-    int fd = openTouchDevice();
-    if (fd < 0) {
-        return;
+    int inputFd = openTouchDevice();
+    if (inputFd < 0) {
+        return false;
     }
 
+    int wakeupFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (wakeupFd < 0) {
+        ALOGE("failed to create wakeup eventfd: %s", strerror(errno));
+        close(inputFd);
+        return false;
+    }
+
+    mWakeupFd = wakeupFd;
     mStop = false;
-    mThread = std::thread(&UdfpsSensorSubHal::readerLoop, this, fd);
+    mRunning = true;
+    mThread = std::thread(&UdfpsSensorSubHal::readerLoop, this, inputFd, wakeupFd);
+    return true;
 }
 
 void UdfpsSensorSubHal::stopReader() {
     std::thread thread;
+    int wakeupFd = -1;
     {
         std::lock_guard<std::mutex> lock(mThreadMutex);
         if (!mThread.joinable()) {
             return;
         }
         mStop = true;
+        wakeupFd = mWakeupFd;
+        mWakeupFd = -1;
         thread = std::move(mThread);
     }
 
+    if (wakeupFd >= 0) {
+        const uint64_t wake = 1;
+        ssize_t written;
+        do {
+            written = write(wakeupFd, &wake, sizeof(wake));
+        } while (written < 0 && errno == EINTR);
+        if (written < 0 && errno != EAGAIN) {
+            ALOGW("failed to signal wakeup eventfd: %s", strerror(errno));
+        }
+    }
+
     thread.join();
+    if (wakeupFd >= 0) {
+        close(wakeupFd);
+    }
 }
 
-void UdfpsSensorSubHal::readerLoop(int fd) {
-    pollfd pfd = {.fd = fd, .events = POLLIN, .revents = 0};
+void UdfpsSensorSubHal::readerLoop(int inputFd, int wakeupFd) {
+    pollfd pfds[2] = {
+            {.fd = inputFd, .events = POLLIN, .revents = 0},
+            {.fd = wakeupFd, .events = POLLIN, .revents = 0},
+    };
 
     while (!mStop) {
-        int ret = poll(&pfd, 1, kPollTimeoutMs);
+        pfds[0].revents = 0;
+        pfds[1].revents = 0;
+        int ret = poll(pfds, 2, -1);
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
@@ -237,17 +279,29 @@ void UdfpsSensorSubHal::readerLoop(int fd) {
             ALOGE("poll failed: %s", strerror(errno));
             break;
         }
-        if (ret == 0) {
+        if (mStop || (pfds[1].revents & POLLIN)) {
+            break;
+        }
+        if (pfds[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            ALOGE("input fd error state: revents=0x%x",
+                  static_cast<unsigned int>(pfds[0].revents));
+            break;
+        }
+        if (!(pfds[0].revents & POLLIN)) {
             continue;
         }
 
         input_event events[16];
-        ssize_t bytes = read(fd, events, sizeof(events));
+        ssize_t bytes = read(inputFd, events, sizeof(events));
         if (bytes < 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 continue;
             }
             ALOGE("read failed: %s", strerror(errno));
+            break;
+        }
+        if (bytes == 0) {
+            ALOGE("unexpected EOF on input fd");
             break;
         }
 
@@ -261,7 +315,8 @@ void UdfpsSensorSubHal::readerLoop(int fd) {
         }
     }
 
-    close(fd);
+    mRunning = false;
+    close(inputFd);
 }
 
 void UdfpsSensorSubHal::reportPress() {
