@@ -13,8 +13,20 @@
                 100.0,
                 117.0
             ],
+            "HotHysteresis":[
+                0.0,
+                0.0,
+                0.0,
+                2.0,
+                2.0,
+                2.0,
+                2.0
+            ],
             "VrThreshold": "NaN",
-            "Multiplier": 0.001
+            "Multiplier": 0.001,
+            "PollingDelay": 5000,
+            "PassiveDelay": 2000,
+            "SendCallback": true
         },
         {
             "Name":"GPU",
@@ -44,8 +56,20 @@
                 59.0,
                 60.0
             ],
+            "HotHysteresis":[
+                0.0,
+                0.0,
+                0.0,
+                2.0,
+                2.0,
+                1.0,
+                0.5
+            ],
             "VrThreshold": "NaN",
-            "Multiplier": 0.001
+            "Multiplier": 0.001,
+            "PollingDelay": 5000,
+            "PassiveDelay": 2000,
+            "SendCallback": true
         },
         {
             "Name":"mtktsAP",
@@ -59,8 +83,20 @@
                 80.0,
                 90.0
             ],
-            "VrThreshold" :"NaN",
-            "Multiplier": 0.001
+            "HotHysteresis":[
+                0.0,
+                0.0,
+                0.0,
+                2.0,
+                2.0,
+                2.0,
+                2.0
+            ],
+            "VrThreshold": "NaN",
+            "Multiplier": 0.001,
+            "PollingDelay": 5000,
+            "PassiveDelay": 2000,
+            "SendCallback": true
         },
         {
             "Name":"mtktsbtsnrpa",
@@ -153,6 +189,15 @@
                 100.0,
                 117.0
             ],
+            "HotHysteresis":[
+                0.0,
+                0.0,
+                0.0,
+                2.0,
+                2.0,
+                2.0,
+                2.0
+            ],
             "VrThreshold": "NaN",
             "Multiplier": 0.001,
             "PollingDelay": 5000,
@@ -176,11 +221,11 @@
         },
         {
             "Name":"lcd-backlight",
-            "Type":"BATTERY"
+            "Type":"DISPLAY"
         },
         {
             "Name":"flashlight_cooler",
-            "Type":"BATTERY"
+            "Type":"FLASHLIGHT"
         }
     ]
 }
