@@ -28,6 +28,7 @@
 #include <health-impl/ChargerUtils.h>
 #endif
 
+using aidl::android::hardware::health::BatteryStatus;
 using aidl::android::hardware::health::HalHealthLoop;
 using aidl::android::hardware::health::Health;
 using aidl::android::hardware::health::HealthInfo;
@@ -88,6 +89,8 @@ int32_t NormalizeVbusToUv(int32_t raw) {
     return static_cast<int32_t>(uv);
 }
 
+// Both sc8541_charger (cp_ibus) and Xiaomi's mtk_charger_framework (usb/*_current_now)
+// report mA on degas; accept either mA or uA if a kernel update changes units.
 int32_t NormalizeIbusToUa(int32_t raw) {
     if (raw <= 0) {
         return 0;
@@ -118,7 +121,18 @@ class DegasHealth : public Health {
             return;
         }
 
-        if (health_info->batteryChargeTimeToFullNowSeconds > kMaxPlausibleChargeTimeSecs) {
+        if (health_info->batteryFullChargeDesignCapacityUah > 0 &&
+            health_info->batteryFullChargeDesignCapacityUah < 100000) {
+            health_info->batteryFullChargeDesignCapacityUah *= 1000;
+        }
+
+        const int64_t charge_time_secs = health_info->batteryChargeTimeToFullNowSeconds;
+        const bool bogus_zero_time = charge_time_secs == 0 &&
+                                     health_info->batteryStatus == BatteryStatus::CHARGING &&
+                                     health_info->batteryLevel < 100;
+        if (charge_time_secs > kMaxPlausibleChargeTimeSecs ||
+            charge_time_secs < HealthInfo::BATTERY_CHARGE_TIME_TO_FULL_NOW_SECONDS_UNSUPPORTED ||
+            bogus_zero_time) {
             health_info->batteryChargeTimeToFullNowSeconds =
                     HealthInfo::BATTERY_CHARGE_TIME_TO_FULL_NOW_SECONDS_UNSUPPORTED;
         }
@@ -176,8 +190,9 @@ class DegasHealth : public Health {
             } else if (raw_val >= 2000 && raw_val <= 20000) {
                 bat_v_uv = raw_val * 1000;
             }
-        } else if (health_info->batteryVoltageMillivolts >= 2000 &&
-                   health_info->batteryVoltageMillivolts <= 20000) {
+        }
+        if (bat_v_uv == 0 && health_info->batteryVoltageMillivolts >= 2000 &&
+            health_info->batteryVoltageMillivolts <= 20000) {
             bat_v_uv = health_info->batteryVoltageMillivolts * 1000;
         }
 
