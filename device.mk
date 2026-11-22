@@ -161,6 +161,7 @@ PRODUCT_PACKAGES += \
 
 # Init
 PRODUCT_PACKAGES += \
+    ax_init_degas.rc \
     degas-backlight-sync \
     fstab.enableswap \
     fstab.mt6897 \
@@ -247,6 +248,8 @@ PRODUCT_PACKAGES += \
 # Power
 PRODUCT_PACKAGES += \
     android.hardware.power-service.lineage-libperfmgr \
+    ax_kernel_manager.xml \
+    ax_perf_thermal.xml \
     libmtkperf_client_vendor \
     libperfctl_vendor \
     libpowerhalwrap_vendor

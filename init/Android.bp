@@ -85,3 +85,10 @@ prebuilt_etc {
     relative_install_path: "init",
     vendor: true,
 }
+
+prebuilt_etc {
+    name: "ax_init_degas.rc",
+    src: "ax_init_degas.rc",
+    relative_install_path: "init",
+    vendor: true,
+}
