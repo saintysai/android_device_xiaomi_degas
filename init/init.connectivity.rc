@@ -3,8 +3,6 @@ on post-fs-data
     mkdir /data/vendor/log 0770 gps system
     mkdir /data/vendor/log/gps 0770 gps system
 
-    chmod 0660 /dev/gps_emi
-
     mkdir /data/vendor/wifi 0770 wifi wifi
     mkdir /data/vendor/wifi/wpa 0770 wifi wifi
     mkdir /data/vendor/wifi/wpa/sockets 0770 wifi wifi
@@ -14,7 +12,7 @@ service mnld /vendor/bin/mnld
     user gps
     capabilities WAKE_ALARM
     group gps inet misc sdcard_rw sdcard_r media_rw system radio wakelock
-    socket mnld stream 660 gps system
+    socket mnld stream 0660 gps system
 
 service conninfra_loader /vendor/bin/conninfra_loader
     class core

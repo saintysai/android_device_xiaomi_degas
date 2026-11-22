@@ -1,5 +1,5 @@
 on boot
-    chmod 0666 /dev/xiaomi-fp
+    chmod 0660 /dev/xiaomi-fp
     chown system system /dev/xiaomi-fp
 
 on post-fs-data

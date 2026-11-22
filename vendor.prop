@@ -242,6 +242,15 @@ persist.vendor.sys.fp.expolevel=0x88
 ro.vendor.gps.chrdev=gps_drv_dl_v051
 ro.vendor.mtk_log_hide_gps=0
 
+# LMKD
+ro.lmk.kill_heaviest_task=true
+ro.lmk.kill_timeout_ms=100
+ro.lmk.psi_complete_stall_ms=700
+ro.lmk.swap_free_low_percentage=10
+ro.lmk.swap_util_max=100
+ro.lmk.thrashing_limit=100
+ro.lmk.thrashing_limit_decay=10
+
 # Media
 debug.stagefright.c2inputsurface=-1
 media.c2.dmabuf.padding=3072

@@ -39,10 +39,10 @@ on post-fs-data
 
 # smart pa start
 on property:vendor.audio.cit.spkcal.copy=true
-    chmod 644 /data/vendor/cit/aw_cali.bin
+    chmod 0644 /data/vendor/cit/aw_cali.bin
     copy /data/vendor/cit/aw_cali.bin /mnt/vendor/persist/factory/audio/aw_cali.bin
-    chmod 666 /mnt/vendor/persist/factory/audio/aw_cali.bin
-    chmod 666 /data/vendor/cit/aw_cali.bin
+    chmod 0664 /mnt/vendor/persist/factory/audio/aw_cali.bin
+    chmod 0664 /data/vendor/cit/aw_cali.bin
 
 on boot
     # Display feature sysfs node
