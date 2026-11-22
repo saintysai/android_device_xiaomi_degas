@@ -80,7 +80,7 @@ class ColorService : Service() {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
             }
-        registerReceiver(screenStateReceiver, screenStateFilter)
+        registerReceiver(screenStateReceiver, screenStateFilter, Context.RECEIVER_NOT_EXPORTED)
         setCurrentColorMode()
     }
 
@@ -91,6 +91,7 @@ class ColorService : Service() {
 
     override fun onDestroy() {
         if (DEBUG) Log.d(TAG, "onDestroy")
+        handler.removeCallbacksAndMessages(null)
         contentResolver.unregisterContentObserver(settingObserver)
         unregisterReceiver(screenStateReceiver)
         super.onDestroy()
@@ -148,7 +149,7 @@ class ColorService : Service() {
             private const val EXPERT_COOKIE = 10
 
             fun fromId(id: Int): ColorMode? {
-                return values().find { it.id == id }
+                return entries.find { it.id == id }
             }
         }
     }
@@ -156,7 +157,7 @@ class ColorService : Service() {
     companion object {
         private const val TAG = "ColorService"
 
-        private val DEBUG = true
+        private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
 
         private val DEFAULT_COLOR_MODE = SystemProperties.getInt("persist.sys.sf.native_mode", 0)
 

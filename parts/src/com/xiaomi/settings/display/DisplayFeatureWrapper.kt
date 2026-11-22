@@ -5,6 +5,7 @@
 
 package com.xiaomi.settings.display
 
+import android.os.Binder
 import android.os.IBinder
 import android.os.ServiceManager
 import android.util.Log
@@ -13,8 +14,7 @@ import vendor.xiaomi.hardware.displayfeature_aidl.IDisplayFeature
 object DisplayFeatureWrapper {
 
     private const val TAG = "DisplayFeatureWrapper"
-    //private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
-    private val DEBUG = true
+    private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
 
     @Volatile private var displayFeature: IDisplayFeature? = null
 
@@ -29,10 +29,9 @@ object DisplayFeatureWrapper {
         displayFeature
             ?: runCatching {
                 val fqName = "${IDisplayFeature.DESCRIPTOR}/default"
-                val binder = android.os.Binder.allowBlocking(
-                    android.os.ServiceManager.waitForDeclaredService(fqName)
-                )
-                IDisplayFeature.Stub.asInterface(binder).apply {
+                val rawBinder = ServiceManager.waitForDeclaredService(fqName) ?: return@runCatching null
+                val binder = Binder.allowBlocking(rawBinder)
+                IDisplayFeature.Stub.asInterface(binder)?.apply {
                     asBinder().linkToDeath(deathRecipient, 0)
                 }
             }

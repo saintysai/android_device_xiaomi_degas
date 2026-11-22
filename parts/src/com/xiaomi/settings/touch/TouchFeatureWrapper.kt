@@ -6,6 +6,7 @@
 package com.xiaomi.settings.touch
 
 import android.os.Binder
+import android.os.DeadObjectException
 import android.os.IBinder
 import android.os.Parcel
 import android.os.ServiceManager
@@ -64,9 +65,16 @@ object TouchFeatureWrapper {
         return try {
             data.writeInterfaceToken(DESCRIPTOR)
             args.forEach { data.writeInt(it) }
-            binder.transact(code, data, reply, 0)
+            if (!binder.transact(code, data, reply, 0)) {
+                Log.e(TAG, "transact $code returned false")
+                return null
+            }
             reply.readException()
             reply.readInt()
+        } catch (e: DeadObjectException) {
+            Log.w(TAG, "touchfeature service died during transact $code", e)
+            service = null
+            null
         } catch (e: Exception) {
             Log.e(TAG, "transact $code failed!", e)
             null

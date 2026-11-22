@@ -9,7 +9,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
@@ -35,16 +37,32 @@ class ImsHealService : Service() {
 
     private var globalModeSanitized = false
     private val healedSubIds = mutableSetOf<Int>()
+    private var imsCallbackRegistered = false
+
+    private val imsNetworkCallback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                reset()
+            }
+
+            override fun onLost(network: Network) {
+                if (DEBUG) Log.d(TAG, "IMS network lost, scheduling prompt check")
+                handler.removeCallbacks(pollRunnable)
+                handler.postDelayed(pollRunnable, POLL_INTERVAL_UNHEALTHY_MS)
+            }
+        }
 
     private val pollRunnable =
         object : Runnable {
             override fun run() {
-                try {
-                    check()
-                } catch (e: Exception) {
-                    Log.e(TAG, "check failed", e)
-                }
-                handler.postDelayed(this, POLL_INTERVAL_MS)
+                val nextDelay =
+                    try {
+                        check()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "check failed", e)
+                        POLL_INTERVAL_HEALTHY_MS
+                    }
+                handler.postDelayed(this, nextDelay)
             }
         }
 
@@ -54,6 +72,16 @@ class ImsHealService : Service() {
         handlerThread = HandlerThread(TAG)
         handlerThread.start()
         handler = Handler(handlerThread.looper)
+        val imsRequest =
+            NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_IMS)
+                .build()
+        runCatching {
+            getSystemService(ConnectivityManager::class.java)?.let { cm ->
+                cm.registerNetworkCallback(imsRequest, imsNetworkCallback, handler)
+                imsCallbackRegistered = true
+            }
+        }.onFailure { e -> Log.w(TAG, "cannot register IMS network callback", e) }
         handler.post { healAllowedNetworkTypes() }
         handler.postDelayed(pollRunnable, FIRST_POLL_DELAY_MS)
     }
@@ -61,6 +89,13 @@ class ImsHealService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
+        if (imsCallbackRegistered) {
+            runCatching {
+                getSystemService(ConnectivityManager::class.java)
+                    ?.unregisterNetworkCallback(imsNetworkCallback)
+            }
+            imsCallbackRegistered = false
+        }
         handler.removeCallbacksAndMessages(null)
         handlerThread.quitSafely()
         super.onDestroy()
@@ -68,18 +103,18 @@ class ImsHealService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun check() {
+    private fun check(): Long {
         healAllowedNetworkTypes()
 
         val subId = SubscriptionManager.getDefaultVoiceSubscriptionId()
         if (!SubscriptionManager.isValidSubscriptionId(subId)) {
             reset()
-            return
+            return POLL_INTERVAL_HEALTHY_MS
         }
 
         if (hasImsNetwork()) {
             reset()
-            return
+            return POLL_INTERVAL_HEALTHY_MS
         }
 
         val telephonyManager =
@@ -87,37 +122,40 @@ class ImsHealService : Service() {
 
         if (!isOnLteOrNr(telephonyManager)) {
             reset()
-            return
+            return POLL_INTERVAL_HEALTHY_MS
         }
 
-        if (telephonyManager.callState != TelephonyManager.CALL_STATE_IDLE) return
+        if (telephonyManager.callState != TelephonyManager.CALL_STATE_IDLE) {
+            return POLL_INTERVAL_UNHEALTHY_MS
+        }
 
         val volteEnabled =
             try {
                 ImsMmTelManager.createForSubscriptionId(subId).isAdvancedCallingSettingEnabled
             } catch (e: Exception) {
                 if (DEBUG) Log.d(TAG, "cannot read VoLTE setting for sub $subId", e)
-                return
+                return POLL_INTERVAL_HEALTHY_MS
             }
         if (!volteEnabled) {
             reset()
-            return
+            return POLL_INTERVAL_HEALTHY_MS
         }
 
         strikes++
         if (DEBUG) Log.d(TAG, "no IMS network on LTE/NR, strike $strikes/$STRIKES_BEFORE_POKE")
-        if (strikes < STRIKES_BEFORE_POKE) return
+        if (strikes < STRIKES_BEFORE_POKE) return POLL_INTERVAL_UNHEALTHY_MS
 
         val now = SystemClock.uptimeMillis()
-        if (now < quietUntil) return
+        if (now < quietUntil) return POLL_INTERVAL_UNHEALTHY_MS
         if (attempts >= MAX_ATTEMPTS) {
             if (DEBUG) Log.d(TAG, "giving up after $attempts pokes")
-            return
+            return POLL_INTERVAL_HEALTHY_MS
         }
 
         attempts++
         quietUntil = now + COOLDOWN_MS
         poke(telephonyManager)
+        return POLL_INTERVAL_UNHEALTHY_MS
     }
 
     private fun poke(telephonyManager: TelephonyManager) {
@@ -272,7 +310,8 @@ class ImsHealService : Service() {
         private val RAF_NR_LTE_GSM_WCDMA =
             RAF_LTE_GSM_WCDMA or TelephonyManager.NETWORK_TYPE_BITMASK_NR
 
-        private const val POLL_INTERVAL_MS = 15_000L
+        private const val POLL_INTERVAL_UNHEALTHY_MS = 15_000L
+        private const val POLL_INTERVAL_HEALTHY_MS = 60_000L
         private const val STRIKES_BEFORE_POKE = 3
 
         private const val FIRST_POLL_DELAY_MS = 60_000L
