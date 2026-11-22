@@ -11,6 +11,12 @@ allow vendor_init sysfs_therm:dir search;
 allow vendor_init sysfs_therm:file w_file_perms;
 allow vendor_init sysfs_therm:file setattr;
 
+allow vendor_init vendor_sysfs_displayfeature:dir search;
+allow vendor_init vendor_sysfs_displayfeature:file setattr;
+allow vendor_init sysfs_touch:dir search;
+allow vendor_init sysfs_touch:file setattr;
+allow vendor_init proc_touch:file setattr;
+
 allow vendor_init persist_data_file:dir search;
 allow vendor_init persist_data_file:file { open write };
 

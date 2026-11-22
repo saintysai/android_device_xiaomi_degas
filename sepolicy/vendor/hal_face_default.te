@@ -2,7 +2,12 @@ allow hal_face_default face_vendor_data_file:dir rw_dir_perms;
 allow hal_face_default face_vendor_data_file:file create_file_perms;
 
 allow hal_face_default fwk_camera_service:service_manager find;
-binder_call(hal_face_default, cameraserver);
+binder_call(hal_face_default, cameraserver)
+binder_call(cameraserver, hal_face_default)
+allow cameraserver hal_face_default:dir search;
+allow cameraserver hal_face_default:file r_file_perms;
+allow hal_face_default hidl_token_hwservice:hwservice_manager find;
+hal_client_domain(hal_face_default, hal_graphics_allocator)
 get_prop(hal_face_default, camera_config_prop)
 
 allow hal_face_default tee_device:chr_file rw_file_perms;

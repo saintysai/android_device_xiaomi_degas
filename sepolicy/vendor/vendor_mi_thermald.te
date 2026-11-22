@@ -12,7 +12,7 @@ rw_dir_file(vendor_mi_thermald, sysfs_power_supply)
 rw_dir_file(vendor_mi_thermald, sysfs_therm)
 rw_dir_file(vendor_mi_thermald, sysfs_thermal)
 r_dir_file(vendor_mi_thermald, sysfs_thermal_sram)
-r_dir_file(vendor_mi_thermald, vendor_sysfs_displayfeature)
+rw_dir_file(vendor_mi_thermald, vendor_sysfs_displayfeature)
 
 set_prop(vendor_mi_thermald, vendor_thermal_prop)
 
