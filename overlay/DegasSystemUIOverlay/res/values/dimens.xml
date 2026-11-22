@@ -10,5 +10,5 @@
 
     <dimen name="physical_power_button_center_screen_location_y">1175px</dimen>
 
-    <item name="pixel_pitch" format="float" type="dimen">52.92</item>
+    <item name="pixel_pitch" format="float" type="dimen">57.0</item>
 </resources>
