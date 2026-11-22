@@ -1,0 +1,25 @@
+/*
+ * SPDX-FileCopyrightText: The LineageOS Project
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.xiaomi.settings
+
+import android.os.Bundle
+import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity
+import com.android.settingslib.collapsingtoolbar.R
+
+class XiaomiSettingsActivity : CollapsingToolbarBaseActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.content_frame, XiaomiSettingsFragment(), TAG)
+            .commit()
+    }
+
+    companion object {
+        private const val TAG = "XiaomiSettingsActivity"
+    }
+}
