@@ -27,15 +27,10 @@
         <value>3</value>
         <value>1</value>
     </array>
-    <array name="cpu.speeds.cluster0">
-        <value>480000</value>
-    </array>
-    <array name="cpu.active.cluster0">
-        <value>0.1</value>
-    </array>
     <item name="cpu.idle">6.96</item>
     <item name="cpu.suspend">5</item>
-    <item name="cpu.active">20.20</item>. <item name="cpu.cluster_power.cluster0">2.11</item>
+    <item name="cpu.active">20.20</item>
+    <item name="cpu.cluster_power.cluster0">2.11</item>
     <item name="cpu.cluster_power.cluster1">2.22</item>
     <array name="cpu.core_speeds.cluster0">
         <value>480000</value>
