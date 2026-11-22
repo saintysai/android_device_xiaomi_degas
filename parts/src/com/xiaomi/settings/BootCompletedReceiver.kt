@@ -15,6 +15,7 @@ import android.view.Display.HdrCapabilities
 import com.xiaomi.settings.display.AodService
 import com.xiaomi.settings.display.ColorService
 import com.xiaomi.settings.telephony.ImsHealService
+import com.xiaomi.settings.thermal.ThermalService
 import com.xiaomi.settings.touch.TouchGestureService
 
 class BootCompletedReceiver : BroadcastReceiver() {
@@ -28,6 +29,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     private fun onBootCompleted(context: Context) {
         ImsHealService.startService(context)
+        ThermalService.startService(context)
     }
 
     private fun onLockedBootCompleted(context: Context) {

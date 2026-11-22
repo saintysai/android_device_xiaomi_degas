@@ -24,6 +24,8 @@ object TouchFeatureWrapper {
 
     const val TOUCH_ID_PRIMARY = 0
 
+    const val MODE_TOUCH_GAME_MODE = 0
+    const val MODE_TOUCH_REPORT_RATE = 9
     const val MODE_TOUCH_FOD_ENABLE = 10
     const val MODE_TOUCH_DOUBLETAP = 14
 

@@ -40,7 +40,11 @@ class TouchGestureService : Service() {
                 val isOn = getDisplayState() == Display.STATE_ON
                 if (isOn == lastWasOn) return
                 lastWasOn = isOn
-                if (!isOn) applySetting()
+                if (!isOn) {
+                    applySetting()
+                } else if (TouchPollingController.isEnabled(this@TouchGestureService)) {
+                    TouchPollingController.apply(this@TouchGestureService)
+                }
             }
         }
 
@@ -57,6 +61,9 @@ class TouchGestureService : Service() {
         )
         displayManager.registerDisplayListener(displayListener, handler)
         applySetting()
+        if (TouchPollingController.isEnabled(this)) {
+            TouchPollingController.apply(this)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
