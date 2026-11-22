@@ -10,8 +10,14 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 # Inherit from device makefile.
 $(call inherit-product, device/xiaomi/degas/device.mk)
 
-# Inherit some common LineageOS stuff.
+# AxionOS build flags (evaluated by vendor/lineage/config/common_full_phone.mk)
 TARGET_DISABLE_EPPE := true
+TARGET_SHIPS_AXION_KERNEL_MODULES := false
+TARGET_SUPPORTED_REFRESH_RATES := 60,120,144
+TARGET_DOZE_PICKUP_PULSE_SUPPORTED := true
+TARGET_DOZE_DOUBLE_TAP_PULSE_SUPPORTED := true
+
+# Inherit some common LineageOS stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
 # AxionOS

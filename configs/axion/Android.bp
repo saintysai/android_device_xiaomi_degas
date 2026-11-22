@@ -1,0 +1,17 @@
+//
+// SPDX-FileCopyrightText: The LineageOS Project
+// SPDX-FileCopyrightText: AxionOS
+// SPDX-License-Identifier: Apache-2.0
+//
+
+prebuilt_etc {
+    name: "ax_kernel_manager.xml",
+    src: "ax_kernel_manager.xml",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "ax_perf_thermal.xml",
+    src: "ax_perf_thermal.xml",
+    system_ext_specific: true,
+}
