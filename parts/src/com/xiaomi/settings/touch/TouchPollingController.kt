@@ -7,6 +7,7 @@ package com.xiaomi.settings.touch
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.service.quicksettings.TileService
 import android.util.Log
 
@@ -26,7 +27,9 @@ object TouchPollingController {
 
     fun setEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_HIGH_TOUCH_POLLING, enabled).apply()
-        apply(context)
+        context.sendBroadcast(
+            Intent(TouchTuningController.ACTION_CONFIG_CHANGED).setPackage(context.packageName)
+        )
         runCatching {
             TileService.requestListeningState(
                 context,

@@ -19,12 +19,14 @@
     <string-array name="thermal_profile_entries">
         <item>@string/thermal_profile_default</item>
         <item>@string/thermal_profile_balanced</item>
+        <item>@string/thermal_profile_gaming</item>
         <item>@string/thermal_profile_performance</item>
     </string-array>
 
     <string-array name="thermal_profile_values" translatable="false">
         <item>50</item>
         <item>0</item>
+        <item>18</item>
         <item>6</item>
     </string-array>
 </resources>

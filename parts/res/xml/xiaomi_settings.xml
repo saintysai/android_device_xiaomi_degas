@@ -39,6 +39,11 @@
             android:defaultValue="50"
             android:persistent="false" />
 
+        <Preference
+            android:key="per_app_thermal"
+            android:title="@string/per_app_thermal_title"
+            android:persistent="false" />
+
         <SwitchPreferenceCompat
             android:key="smart_charging_thermal"
             android:title="@string/smart_charging_thermal_title"
@@ -56,6 +61,11 @@
             android:title="@string/high_touch_polling_title"
             android:summary="@string/high_touch_polling_summary"
             android:defaultValue="false"
+            android:persistent="false" />
+
+        <Preference
+            android:key="touch_tuning"
+            android:title="@string/touch_tuning_title"
             android:persistent="false" />
     </PreferenceCategory>
 

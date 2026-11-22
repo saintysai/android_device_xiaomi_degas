@@ -29,12 +29,12 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     private fun onBootCompleted(context: Context) {
         ImsHealService.startService(context)
-        ThermalService.startService(context)
     }
 
     private fun onLockedBootCompleted(context: Context) {
         ColorService.startService(context)
         AodService.startService(context)
+        ThermalService.startService(context)
         TouchGestureService.startService(context)
 
         context.getSystemService(DisplayManager::class.java)?.overrideHdrTypes(
