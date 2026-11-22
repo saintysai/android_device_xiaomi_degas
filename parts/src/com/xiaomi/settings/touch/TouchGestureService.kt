@@ -21,6 +21,8 @@ import android.view.Display
 
 class TouchGestureService : Service() {
     private val handler = Handler(Looper.getMainLooper())
+    private lateinit var displayManager: DisplayManager
+    private var lastWasOn = true
 
     private val settingsObserver =
         object : ContentObserver(handler) {
@@ -35,39 +37,41 @@ class TouchGestureService : Service() {
 
             override fun onDisplayChanged(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) return
-
-                if (getDisplayState() != Display.STATE_ON) applySetting()
+                val isOn = getDisplayState() == Display.STATE_ON
+                if (isOn == lastWasOn) return
+                lastWasOn = isOn
+                if (!isOn) applySetting()
             }
         }
 
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
+        displayManager = getSystemService(DisplayManager::class.java)
+        lastWasOn = getDisplayState() == Display.STATE_ON
         contentResolver.registerContentObserver(
             Settings.Secure.getUriFor(Settings.Secure.DOUBLE_TAP_TO_WAKE),
             false,
             settingsObserver,
             UserHandle.USER_ALL,
         )
-        getSystemService(DisplayManager::class.java)
-            .registerDisplayListener(displayListener, handler)
+        displayManager.registerDisplayListener(displayListener, handler)
         applySetting()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
         contentResolver.unregisterContentObserver(settingsObserver)
-        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        displayManager.unregisterDisplayListener(displayListener)
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun getDisplayState(): Int =
-        getSystemService(DisplayManager::class.java)
-            .getDisplay(Display.DEFAULT_DISPLAY)
-            ?.state ?: Display.STATE_UNKNOWN
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.state ?: Display.STATE_UNKNOWN
 
     private fun applySetting() {
         val enabled =

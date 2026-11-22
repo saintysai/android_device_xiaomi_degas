@@ -20,6 +20,7 @@ import java.io.File
 
 class AodService : Service() {
     private val handler = Handler(Looper.getMainLooper())
+    private lateinit var displayManager: DisplayManager
     private var wasDozing = false
 
     private val displayListener =
@@ -46,24 +47,22 @@ class AodService : Service() {
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
-        getSystemService(DisplayManager::class.java)
-            .registerDisplayListener(displayListener, handler)
+        displayManager = getSystemService(DisplayManager::class.java)
+        displayManager.registerDisplayListener(displayListener, handler)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        displayManager.unregisterDisplayListener(displayListener)
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun getDisplayState(): Int =
-        getSystemService(DisplayManager::class.java)
-            .getDisplay(Display.DEFAULT_DISPLAY)
-            ?.state ?: Display.STATE_UNKNOWN
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.state ?: Display.STATE_UNKNOWN
 
     private fun setFodDetectionEnabled(enabled: Boolean) {
         TouchFeatureWrapper.setModeValue(
@@ -74,8 +73,14 @@ class AodService : Service() {
     }
 
     private fun applyDozeBrightness() {
+        if (!wasDozing) return
         write(DOZE_BRIGHTNESS_LBM)
-        handler.postDelayed({ write(DOZE_BRIGHTNESS_HBM) }, STEP_DELAY_MS)
+        handler.postDelayed(
+            {
+                if (wasDozing) write(DOZE_BRIGHTNESS_HBM)
+            },
+            STEP_DELAY_MS,
+        )
     }
 
     private fun write(value: Int) {
