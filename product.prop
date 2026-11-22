@@ -23,6 +23,10 @@ bluetooth.profile.sap.server.enabled=false
 bluetooth.profile.ccp.server.enabled=true
 bluetooth.profile.vcp.controller.enabled=true
 
+# Display
+debug.hwui.renderer=skiavk
+debug.renderengine.backend=skiavkthreaded
+
 # Media
 debug.config.media.video.dolby_vision_suports=true
 

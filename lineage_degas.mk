@@ -13,7 +13,7 @@ $(call inherit-product, device/xiaomi/degas/device.mk)
 # AxionOS build flags (evaluated by vendor/lineage/config/common_full_phone.mk)
 TARGET_DISABLE_EPPE := true
 TARGET_SHIPS_AXION_KERNEL_MODULES := false
-TARGET_SUPPORTED_REFRESH_RATES := 60,120,144
+TARGET_SUPPORTED_REFRESH_RATES := 60,90,120,144
 TARGET_DOZE_PICKUP_PULSE_SUPPORTED := true
 TARGET_DOZE_DOUBLE_TAP_PULSE_SUPPORTED := true
 

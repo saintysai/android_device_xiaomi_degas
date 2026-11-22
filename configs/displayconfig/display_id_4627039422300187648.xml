@@ -46,4 +46,8 @@
     </highBrightnessMode>
     <ambientLightHorizonLong>1500</ambientLightHorizonLong>
     <ambientLightHorizonShort>1000</ambientLightHorizonShort>
+    <screenBrightnessRampFastDecrease>0.415903</screenBrightnessRampFastDecrease>
+    <screenBrightnessRampFastIncrease>0.415903</screenBrightnessRampFastIncrease>
+    <screenBrightnessRampSlowDecrease>0.2409</screenBrightnessRampSlowDecrease>
+    <screenBrightnessRampSlowIncrease>0.2409</screenBrightnessRampSlowIncrease>
 </displayConfiguration>

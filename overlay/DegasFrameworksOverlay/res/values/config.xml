@@ -8,9 +8,9 @@
 
     <bool name="config_automatic_brightness_available">true</bool>
 
-    <integer name="config_brightness_ramp_rate_fast">4932</integer>
+    <integer name="config_brightness_ramp_rate_fast">106</integer>
 
-    <integer name="config_brightness_ramp_rate_slow">3946</integer>
+    <integer name="config_brightness_ramp_rate_slow">61</integer>
 
     <bool name="config_unplugTurnsOnScreen">true</bool>
 
@@ -39,7 +39,7 @@
     <integer name="config_autoBrightnessBrighteningLightDebounce">1000</integer>
     <integer name="config_autoBrightnessDarkeningLightDebounce">1000</integer>
 
-    <fraction name="config_autoBrightnessAdjustmentMaxGamma">100.0%</fraction>
+    <fraction name="config_autoBrightnessAdjustmentMaxGamma">300%</fraction>
 
     <item name="config_screenBrightnessDimFloat" format="float" type="dimen">0.000854597</item>
 
@@ -280,30 +280,30 @@
         <item>929.2</item>
         <item>964.6</item>
         <item>1000.0</item>
-        <item>1005.0</item>
-        <item>1010.0</item>
+        <item>1007.5</item>
         <item>1015.0</item>
-        <item>1020.0</item>
-        <item>1025.0</item>
+        <item>1022.5</item>
         <item>1030.0</item>
-        <item>1035.0</item>
-        <item>1040.0</item>
+        <item>1037.5</item>
         <item>1045.0</item>
-        <item>1050.0</item>
+        <item>1052.5</item>
+        <item>1060.0</item>
+        <item>1067.5</item>
         <item>1075.0</item>
-        <item>1100.0</item>
-        <item>1125.0</item>
+        <item>1112.5</item>
         <item>1150.0</item>
-        <item>1175.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
-        <item>1200.0</item>
+        <item>1187.5</item>
+        <item>1225.0</item>
+        <item>1262.5</item>
+        <item>1300.0</item>
+        <item>1337.5</item>
+        <item>1375.0</item>
+        <item>1412.5</item>
+        <item>1450.0</item>
+        <item>1487.5</item>
+        <item>1525.0</item>
+        <item>1562.5</item>
+        <item>1600.0</item>
     </array>
 
     <integer-array name="config_ambientThresholdLevels">
@@ -380,7 +380,9 @@
 
     <bool name="config_enableWcgMode">true</bool>
 
-    <string name="config_mainDisplayShape" translatable="false">M20 0h1040s20 0 20 20v2360s0 20 -20 20h-1040s-20 0 -20 -20v-2360s0 -20 20 -20</string>
+    <string name="config_mainDisplayShape" translatable="false">M105 0h1010s105 0 105 105v2502s0 105 -105 105h-1010s-105 0 -105 -105v-2502s0 -105 105 -105</string>
+
+    <bool name="config_adaptive_sleep_available">true</bool>
 
     <bool name="config_screen_off_udfps_enabled">true</bool>
 
