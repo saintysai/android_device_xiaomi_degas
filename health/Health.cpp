@@ -58,6 +58,7 @@ constexpr int32_t kMaxValidVbusUv = 22000000;
 constexpr int32_t kDefaultVbusUv = 5000000;
 constexpr int32_t kMinValidCurrentUa = 100000;
 constexpr int32_t kMaxValidCurrentUa = 15000000;
+constexpr int64_t kMaxPlausibleChargeTimeSecs = 12LL * 60 * 60;
 
 bool ReadTrimmedString(const char* path, std::string* out) {
     std::string content;
@@ -115,6 +116,11 @@ class DegasHealth : public Health {
     void UpdateHealthInfo(HealthInfo* health_info) override {
         if (!health_info) {
             return;
+        }
+
+        if (health_info->batteryChargeTimeToFullNowSeconds > kMaxPlausibleChargeTimeSecs) {
+            health_info->batteryChargeTimeToFullNowSeconds =
+                    HealthInfo::BATTERY_CHARGE_TIME_TO_FULL_NOW_SECONDS_UNSUPPORTED;
         }
 
         if (!health_info->chargerAcOnline && !health_info->chargerUsbOnline) {
