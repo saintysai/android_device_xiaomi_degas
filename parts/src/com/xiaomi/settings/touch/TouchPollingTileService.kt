@@ -11,6 +11,11 @@ import com.xiaomi.settings.R
 
 class TouchPollingTileService : TileService() {
 
+    override fun onTileAdded() {
+        super.onTileAdded()
+        updateTile()
+    }
+
     override fun onStartListening() {
         super.onStartListening()
         updateTile()
