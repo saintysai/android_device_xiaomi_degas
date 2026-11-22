@@ -56,9 +56,9 @@ class UdfpsSensorSubHal : public ISensorsSubHal {
 
     static int openTouchDevice();
 
-    void startReader();
+    bool startReader();
     void stopReader();
-    void readerLoop(int fd);
+    void readerLoop(int inputFd, int wakeupFd);
     void reportPress();
 
     SensorInfo mSensorInfo{};
@@ -68,6 +68,8 @@ class UdfpsSensorSubHal : public ISensorsSubHal {
     std::mutex mThreadMutex;
     std::thread mThread;
     std::atomic<bool> mStop{false};
+    std::atomic<bool> mRunning{false};
+    int mWakeupFd{-1};
 
     std::mutex mCallbackMutex;
     sp<IHalProxyCallback> mCallback;
