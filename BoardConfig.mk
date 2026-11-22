@@ -10,7 +10,7 @@ KERNEL_PATH := $(DEVICE_PATH)-kernel
 TARGET_ARCH := arm64
 TARGET_ARCH_VARIANT := armv9-a
 TARGET_CPU_ABI := arm64-v8a
-TARGET_CPU_VARIANT := cortex-a55
+TARGET_CPU_VARIANT := generic
 
 # Bootloader
 TARGET_BOOTLOADER_BOARD_NAME := degas
@@ -63,10 +63,12 @@ BOARD_SYSTEM_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.l
 
 BOARD_VENDOR_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/vendor_dlkm/*.ko)
 BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.vendor))
+BOARD_DO_NOT_STRIP_VENDOR_MODULES := true
 
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/vendor_ramdisk/*.ko)
 BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.vendor_ramdisk))
 BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.recovery))
+BOARD_DO_NOT_STRIP_VENDOR_RAMDISK_MODULES := true
 
 # Partitions
 AB_OTA_PARTITIONS += \
