@@ -5,11 +5,13 @@
 #
 
 node=/sys/class/leds/lcd-backlight/brightness
-level=$(cat $node) || exit 1
+level=$(cat "$node") || exit 1
+
+[ "$level" -gt 0 ] || exit 0
 
 if [ "$level" -gt 1 ]; then
-    echo $((level - 1)) > $node
+    echo $((level - 1)) > "$node"
 else
-    echo $((level + 1)) > $node
+    echo $((level + 1)) > "$node"
 fi
-echo $level > $node
+echo "$level" > "$node"
