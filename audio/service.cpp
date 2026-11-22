@@ -31,20 +31,9 @@ using ::aidl::android::hardware::soundtrigger3::SoundTriggerHw;
 using ::aidl::vendor::mediatek::hardware::audio::MtkAudio;
 
 template <class Iter>
-static bool registerPassthroughServiceImplementations(Iter first, Iter last) {
-    for (; first != last; ++first) {
-        if (registerPassthroughServiceImplementation(*first) == OK) {
-            return true;
-        }
-    }
-    return false;
-}
-
-template <class Iter>
 static bool registerMandatoryPassthroughServiceImplementations(Iter first, Iter last) {
     bool ret = false;
     for (; first != last; ++first) {
-        const std::string& interfaceName = *first;
         ret |= (registerPassthroughServiceImplementation(*first) == OK);
     }
     return ret;
@@ -72,7 +61,11 @@ static bool registerExternalServiceImplementation(const std::string& libName,
         dlclose(handle);
         return false;
     }
-    return ((*factoryFunction)() == STATUS_OK);
+    if ((*factoryFunction)() != STATUS_OK) {
+        dlclose(handle);
+        return false;
+    }
+    return true;
 }
 
 int main(int , char* []) {
