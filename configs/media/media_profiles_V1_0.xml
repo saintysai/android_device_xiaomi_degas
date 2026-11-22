@@ -268,17 +268,6 @@
                    sampleRate="48000"
                    channels="2" />
         </EncoderProfile>
-        <EncoderProfile quality="timelapsehigh" fileFormat="mp4" duration="30">
-            <Video codec="h264"
-                   bitRate="70000000"
-                   width="3840"
-                   height="2160"
-                   frameRate="30" />
-            <Audio codec="aac"
-                   bitRate="256000"
-                   sampleRate="48000"
-                   channels="2" />
-        </EncoderProfile>
         <EncoderProfile quality="highspeedlow" fileFormat="mp4" duration="30">
             <Video codec="h264"
                    bitRate="9000000"
@@ -710,17 +699,6 @@
                    sampleRate="48000"
                    channels="2" />
         </EncoderProfile>
-        <EncoderProfile quality="timelapsehigh" fileFormat="mp4" duration="30">
-            <Video codec="h264"
-                   bitRate="70000000"
-                   width="3840"
-                   height="2160"
-                   frameRate="30" />
-            <Audio codec="aac"
-                   bitRate="256000"
-                   sampleRate="48000"
-                   channels="2" />
-        </EncoderProfile>
         <EncoderProfile quality="highspeedlow" fileFormat="mp4" duration="30">
             <Video codec="h264"
                    bitRate="9000000"
@@ -852,7 +830,7 @@
             <Video codec="h264"
                    bitRate="20000000"
                    width="1920"
-                   height="1088"
+                   height="1080"
                    frameRate="30" />
             <Audio codec="aac"
                    bitRate="256000"
@@ -959,6 +937,17 @@
                    width="176"
                    height="144"
                    frameRate="20" />
+            <Audio codec="aac"
+                   bitRate="256000"
+                   sampleRate="48000"
+                   channels="2" />
+        </EncoderProfile>
+        <EncoderProfile quality="high" fileFormat="mp4" duration="30">
+            <Video codec="h264"
+                   bitRate="17000000"
+                   width="1920"
+                   height="1080"
+                   frameRate="30" />
             <Audio codec="aac"
                    bitRate="256000"
                    sampleRate="48000"
@@ -1724,6 +1713,4 @@
         minBitRate="5525" maxBitRate="12200"
         minSampleRate="8000" maxSampleRate="8000"
         minChannels="1" maxChannels="1" />
-    <VideoDecoderCap name="wmv" enabled="true"/>
-    <AudioDecoderCap name="wma" enabled="true"/>
 </MediaSettings>
