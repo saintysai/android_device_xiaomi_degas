@@ -118,7 +118,8 @@ class ImsHealService : Service() {
         }
 
         val telephonyManager =
-            getSystemService(TelephonyManager::class.java).createForSubscriptionId(subId)
+            getSystemService(TelephonyManager::class.java)?.createForSubscriptionId(subId)
+                ?: return POLL_INTERVAL_HEALTHY_MS
 
         if (!isOnLteOrNr(telephonyManager)) {
             reset()
@@ -188,7 +189,7 @@ class ImsHealService : Service() {
     }
 
     private fun hasImsNetwork(): Boolean {
-        val connectivityManager = getSystemService(ConnectivityManager::class.java)
+        val connectivityManager = getSystemService(ConnectivityManager::class.java) ?: return false
         return connectivityManager.allNetworks.any {
             connectivityManager
                 .getNetworkCapabilities(it)

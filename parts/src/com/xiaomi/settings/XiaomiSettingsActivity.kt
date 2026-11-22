@@ -13,10 +13,12 @@ class XiaomiSettingsActivity : CollapsingToolbarBaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.content_frame, XiaomiSettingsFragment(), TAG)
-            .commit()
+        if (savedInstanceState == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(R.id.content_frame, XiaomiSettingsFragment(), TAG)
+                .commit()
+        }
     }
 
     companion object {

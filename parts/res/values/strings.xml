@@ -6,7 +6,15 @@
 <resources>
     <string name="app_name">Xiaomi Parts</string>
     <string name="xiaomi_settings_title">Xiaomi 14T settings</string>
-    <string name="xiaomi_settings_summary">Thermal profile, touch polling rate, speaker cleaner</string>
+    <string name="xiaomi_settings_summary">Display, thermal profiles, touch tuning, speaker cleaner</string>
+
+    <string name="display_category_title">Display</string>
+    <string name="aod_brightness_title">Always-on display brightness</string>
+    <string name="aod_brightness_auto">Automatic</string>
+    <string name="aod_brightness_high">High (60 nit)</string>
+    <string name="aod_brightness_low">Low (5 nit)</string>
+    <string name="true_tone_title">True Tone</string>
+    <string name="true_tone_summary">Adapt display color temperature to ambient lighting</string>
 
     <string name="thermal_category_title">Thermal</string>
     <string name="thermal_profile_title">Thermal profile</string>
@@ -27,6 +35,7 @@
     <string name="clear_speaker_title">Clear speaker</string>
     <string name="clear_speaker_summary">Play a 30-second low-frequency tone at full volume to shake dust or moisture out of the speaker grille</string>
     <string name="clear_speaker_running_summary">Cleaning speaker (%1$d s left) - tap to stop</string>
+    <string name="clear_speaker_headset_blocked">Disconnect headphones before clearing speaker</string>
 
     <string name="xiaomi_settings_footer">Thermal profiles update mi_thermald through /sys/class/thermal/thermal_message/sconfig while keeping factory thermal protection active.</string>
 </resources>
