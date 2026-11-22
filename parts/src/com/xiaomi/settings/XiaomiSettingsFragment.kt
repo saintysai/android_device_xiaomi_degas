@@ -5,6 +5,7 @@
 
 package com.xiaomi.settings
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.preference.ListPreference
@@ -15,9 +16,12 @@ import com.xiaomi.settings.display.AodBrightnessController
 import com.xiaomi.settings.display.AodBrightnessController.Mode as AodBrightnessMode
 import com.xiaomi.settings.display.DisplayFeatureController
 import com.xiaomi.settings.speaker.SpeakerCleaner
+import com.xiaomi.settings.thermal.PerAppThermalActivity
 import com.xiaomi.settings.thermal.ThermalController
 import com.xiaomi.settings.thermal.ThermalController.ThermalProfile
 import com.xiaomi.settings.touch.TouchPollingController
+import com.xiaomi.settings.touch.TouchTuningActivity
+import com.xiaomi.settings.touch.TouchTuningController
 
 class XiaomiSettingsFragment :
     SettingsBasePreferenceFragment(),
@@ -27,8 +31,10 @@ class XiaomiSettingsFragment :
     private var aodBrightnessPref: ListPreference? = null
     private var trueTonePref: SwitchPreferenceCompat? = null
     private var thermalProfilePref: ListPreference? = null
+    private var perAppThermalPref: Preference? = null
     private var smartChargingPref: SwitchPreferenceCompat? = null
     private var touchPollingPref: SwitchPreferenceCompat? = null
+    private var touchTuningPref: Preference? = null
     private var clearSpeakerPref: Preference? = null
 
     private lateinit var speakerCleaner: SpeakerCleaner
@@ -61,6 +67,12 @@ class XiaomiSettingsFragment :
                 onPreferenceChangeListener = this@XiaomiSettingsFragment
             }
 
+        perAppThermalPref =
+            findPreference<Preference>(KEY_PER_APP_THERMAL)?.apply {
+                isEnabled = thermalSupported
+                onPreferenceClickListener = this@XiaomiSettingsFragment
+            }
+
         smartChargingPref =
             findPreference<SwitchPreferenceCompat>(KEY_SMART_CHARGING_THERMAL)?.apply {
                 isEnabled = thermalSupported
@@ -74,10 +86,17 @@ class XiaomiSettingsFragment :
                 onPreferenceChangeListener = this@XiaomiSettingsFragment
             }
 
+        touchTuningPref =
+            findPreference<Preference>(KEY_TOUCH_TUNING)?.apply {
+                onPreferenceClickListener = this@XiaomiSettingsFragment
+            }
+
         clearSpeakerPref =
             findPreference<Preference>(KEY_CLEAR_SPEAKER)?.apply {
                 onPreferenceClickListener = this@XiaomiSettingsFragment
             }
+
+        updateDynamicSummaries()
     }
 
     override fun onResume() {
@@ -88,6 +107,7 @@ class XiaomiSettingsFragment :
         thermalProfilePref?.value = ThermalController.getSelectedProfile(context).prefValue
         smartChargingPref?.isChecked = ThermalController.isSmartChargingThermalEnabled(context)
         touchPollingPref?.isChecked = TouchPollingController.isEnabled(context)
+        updateDynamicSummaries()
         if (!speakerCleaner.isRunning) {
             clearSpeakerPref?.setSummary(R.string.clear_speaker_summary)
         }
@@ -117,7 +137,7 @@ class XiaomiSettingsFragment :
                 true
             }
             KEY_THERMAL_PROFILE -> {
-                val profile = ThermalProfile.fromPrefValue(newValue as? String)
+                val profile = ThermalProfile.fromGlobalPrefValue(newValue as? String)
                 ThermalController.setSelectedProfile(context, profile)
                 true
             }
@@ -136,10 +156,53 @@ class XiaomiSettingsFragment :
     }
 
     override fun onPreferenceClick(preference: Preference): Boolean {
-        if (preference.key != KEY_CLEAR_SPEAKER) return false
+        return when (preference.key) {
+            KEY_PER_APP_THERMAL -> {
+                startActivity(Intent(requireContext(), PerAppThermalActivity::class.java))
+                true
+            }
+            KEY_TOUCH_TUNING -> {
+                startActivity(Intent(requireContext(), TouchTuningActivity::class.java))
+                true
+            }
+            KEY_CLEAR_SPEAKER -> {
+                toggleSpeakerCleaner()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun updateDynamicSummaries() {
+        val context = requireContext()
+        val perAppEnabled = ThermalController.isPerAppEnabled(context)
+        val count = ThermalController.getCustomizedAppCount(context)
+        perAppThermalPref?.summary =
+            when {
+                !perAppEnabled -> getString(R.string.per_app_thermal_summary_off)
+                count == 0 -> getString(R.string.per_app_thermal_summary_none)
+                else ->
+                    resources.getQuantityString(
+                        R.plurals.per_app_thermal_summary_count,
+                        count,
+                        count,
+                    )
+            }
+
+        touchTuningPref?.summary =
+            getString(
+                if (TouchTuningController.isGameModeEnabled(context)) {
+                    R.string.touch_tuning_summary_on
+                } else {
+                    R.string.touch_tuning_summary_off
+                }
+            )
+    }
+
+    private fun toggleSpeakerCleaner() {
         if (speakerCleaner.isRunning) {
             speakerCleaner.stop()
-            return true
+            return
         }
         val result =
             speakerCleaner.start(
@@ -162,15 +225,16 @@ class XiaomiSettingsFragment :
                 Toast.LENGTH_SHORT,
             ).show()
         }
-        return true
     }
 
     companion object {
         private const val KEY_AOD_BRIGHTNESS = "aod_brightness"
         private const val KEY_TRUE_TONE = "true_tone"
         private const val KEY_THERMAL_PROFILE = "thermal_profile"
+        private const val KEY_PER_APP_THERMAL = "per_app_thermal"
         private const val KEY_SMART_CHARGING_THERMAL = "smart_charging_thermal"
         private const val KEY_HIGH_TOUCH_POLLING = "high_touch_polling"
+        private const val KEY_TOUCH_TUNING = "touch_tuning"
         private const val KEY_CLEAR_SPEAKER = "clear_speaker"
     }
 }

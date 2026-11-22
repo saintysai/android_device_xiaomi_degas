@@ -6,27 +6,51 @@
 package com.xiaomi.settings.touch
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.database.ContentObserver
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
 import android.os.UserHandle
 import android.provider.Settings
+import android.service.quicksettings.TileService
 import android.util.Log
 import android.view.Display
 
 class TouchGestureService : Service() {
-    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var workerThread: HandlerThread
+    private lateinit var workerHandler: Handler
     private lateinit var displayManager: DisplayManager
     private var lastWasOn = true
 
-    private val settingsObserver =
-        object : ContentObserver(handler) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) = applySetting()
+    private val settingsObserver by lazy {
+        object : ContentObserver(workerHandler) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) = applyDoubleTapSetting()
+        }
+    }
+
+    private val configReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val action = intent.action ?: return
+                workerHandler.post {
+                    when (action) {
+                        TouchTuningController.ACTION_CONFIG_CHANGED -> {
+                            TouchPollingController.apply(this@TouchGestureService)
+                            TouchTuningController.apply(this@TouchGestureService)
+                        }
+                        TouchTuningController.ACTION_RESET_DEFAULTS -> {
+                            TouchTuningController.applyResetDefaults(this@TouchGestureService)
+                        }
+                    }
+                }
+            }
         }
 
     private val displayListener =
@@ -41,9 +65,14 @@ class TouchGestureService : Service() {
                 if (isOn == lastWasOn) return
                 lastWasOn = isOn
                 if (!isOn) {
-                    applySetting()
-                } else if (TouchPollingController.isEnabled(this@TouchGestureService)) {
-                    TouchPollingController.apply(this@TouchGestureService)
+                    applyDoubleTapSetting()
+                } else {
+                    if (TouchPollingController.isEnabled(this@TouchGestureService)) {
+                        TouchPollingController.apply(this@TouchGestureService)
+                    }
+                    if (TouchTuningController.isGameModeEnabled(this@TouchGestureService)) {
+                        TouchTuningController.apply(this@TouchGestureService)
+                    }
                 }
             }
         }
@@ -51,27 +80,50 @@ class TouchGestureService : Service() {
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
+        workerThread = HandlerThread(TAG).apply { start() }
+        workerHandler = Handler(workerThread.looper)
         displayManager = getSystemService(DisplayManager::class.java)
         lastWasOn = getDisplayState() == Display.STATE_ON
+
         contentResolver.registerContentObserver(
             Settings.Secure.getUriFor(Settings.Secure.DOUBLE_TAP_TO_WAKE),
             false,
             settingsObserver,
             UserHandle.USER_ALL,
         )
-        displayManager.registerDisplayListener(displayListener, handler)
-        applySetting()
-        if (TouchPollingController.isEnabled(this)) {
-            TouchPollingController.apply(this)
+        val filter =
+            IntentFilter().apply {
+                addAction(TouchTuningController.ACTION_CONFIG_CHANGED)
+                addAction(TouchTuningController.ACTION_RESET_DEFAULTS)
+            }
+        registerReceiver(configReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        displayManager.registerDisplayListener(displayListener, workerHandler)
+
+        workerHandler.post {
+            applyDoubleTapSetting()
+            if (TouchPollingController.isEnabled(this)) {
+                TouchPollingController.apply(this)
+            }
+            if (TouchTuningController.isGameModeEnabled(this)) {
+                TouchTuningController.apply(this)
+            }
+            runCatching {
+                TileService.requestListeningState(
+                    this,
+                    ComponentName(this, TouchPollingTileService::class.java),
+                )
+            }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null)
         contentResolver.unregisterContentObserver(settingsObserver)
+        unregisterReceiver(configReceiver)
         displayManager.unregisterDisplayListener(displayListener)
+        workerHandler.removeCallbacksAndMessages(null)
+        workerThread.quitSafely()
         super.onDestroy()
     }
 
@@ -80,7 +132,7 @@ class TouchGestureService : Service() {
     private fun getDisplayState(): Int =
         displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.state ?: Display.STATE_UNKNOWN
 
-    private fun applySetting() {
+    private fun applyDoubleTapSetting() {
         val enabled =
             Settings.Secure.getIntForUser(
                 contentResolver,
