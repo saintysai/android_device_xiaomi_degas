@@ -10,11 +10,19 @@
 # fingerprint touch. Step one level away and back so the panel learns it.
 
 node=/sys/class/leds/lcd-backlight/brightness
-level=$(cat $node) || exit 1
+level=$(cat "$node") || exit 1
+
+case "$level" in
+    ''|*[!0-9]*) exit 0 ;;
+esac
+
+if [ "$level" -eq 0 ]; then
+    exit 0
+fi
 
 if [ "$level" -gt 1 ]; then
-    echo $((level - 1)) > $node
+    echo $((level - 1)) > "$node"
 else
-    echo $((level + 1)) > $node
+    echo $((level + 1)) > "$node"
 fi
-echo $level > $node
+echo "$level" > "$node"

@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <thread>
 
 #include "UdfpsHandler.h"
@@ -51,9 +52,17 @@ using ::aidl::android::hardware::biometrics::fingerprint::AcquiredInfo;
 namespace {
 constexpr size_t kMaxDispEventLength = 4096;
 
+static ssize_t readNoIntr(int fd, void* buf, size_t count) {
+    ssize_t rc;
+    do {
+        rc = read(fd, buf, count);
+    } while (rc < 0 && errno == EINTR);
+    return rc;
+}
+
 static std::shared_ptr<disp_event_resp> parseDispEvent(int fd) {
     disp_event header;
-    ssize_t headerSize = read(fd, &header, sizeof(header));
+    ssize_t headerSize = readNoIntr(fd, &header, sizeof(header));
     if (headerSize != static_cast<ssize_t>(sizeof(header))) {
         LOG(ERROR) << "unexpected display event header size: " << headerSize;
         return nullptr;
@@ -74,7 +83,7 @@ static std::shared_ptr<disp_event_resp> parseDispEvent(int fd) {
 
     const size_t dataLength = header.length - sizeof(header);
     if (dataLength > 0) {
-        ssize_t dataSize = read(fd, &response->data, dataLength);
+        ssize_t dataSize = readNoIntr(fd, &response->data, dataLength);
         if (dataSize != static_cast<ssize_t>(dataLength)) {
             LOG(ERROR) << "unexpected display event data size: " << dataSize;
             return nullptr;
@@ -94,11 +103,11 @@ class XiaomiDegasUdfpsHandler : public UdfpsHandler {
   public:
     void init(fingerprint_device_t* device) {
         mDevice = device;
-        touch_fd_ = android::base::unique_fd(open(TOUCH_DEV_PATH, O_RDWR));
-        disp_fd_ = android::base::unique_fd(open(DISP_FEATURE_PATH, O_RDWR));
+        touch_fd_ = android::base::unique_fd(open(TOUCH_DEV_PATH, O_RDWR | O_CLOEXEC));
+        disp_fd_ = android::base::unique_fd(open(DISP_FEATURE_PATH, O_RDWR | O_CLOEXEC));
 
         std::thread([this]() {
-            android::base::unique_fd fd(open(DISP_FEATURE_PATH, O_RDWR));
+            android::base::unique_fd fd(open(DISP_FEATURE_PATH, O_RDWR | O_CLOEXEC));
             if (fd < 0) {
                 LOG(ERROR) << "failed to open " << DISP_FEATURE_PATH << ": " << strerror(errno);
                 mEventThreadBroken = true;
@@ -274,7 +283,8 @@ class XiaomiDegasUdfpsHandler : public UdfpsHandler {
     }
 
   private:
-    fingerprint_device_t* mDevice;
+    fingerprint_device_t* mDevice{nullptr};
+    std::mutex mFdMutex;
     android::base::unique_fd touch_fd_;
     android::base::unique_fd disp_fd_;
     std::atomic<bool> mEventThreadBroken{false};
@@ -283,8 +293,12 @@ class XiaomiDegasUdfpsHandler : public UdfpsHandler {
     std::atomic<bool> mFingerDown{false};
 
     void setLocalHbm(uint32_t value) {
+        std::lock_guard<std::mutex> lock(mFdMutex);
         if (disp_fd_.get() < 0) {
-            return;
+            disp_fd_.reset(open(DISP_FEATURE_PATH, O_RDWR | O_CLOEXEC));
+            if (disp_fd_.get() < 0) {
+                return;
+            }
         }
         struct disp_local_hbm_req req = {
                 .base = displayBasePrimary,
@@ -294,8 +308,12 @@ class XiaomiDegasUdfpsHandler : public UdfpsHandler {
     }
 
     void setFingerDown(bool pressed) {
+        std::lock_guard<std::mutex> lock(mFdMutex);
         if (touch_fd_.get() < 0) {
-            return;
+            touch_fd_.reset(open(TOUCH_DEV_PATH, O_RDWR | O_CLOEXEC));
+            if (touch_fd_.get() < 0) {
+                return;
+            }
         }
         int buf[MAX_BUF_SIZE] = {MI_DISP_PRIMARY, Touch_Fod_Enable, pressed ? 1 : 0};
         ioctl(touch_fd_.get(), TOUCH_IOC_SET_CUR_VALUE, &buf);

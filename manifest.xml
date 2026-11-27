@@ -173,7 +173,7 @@
     </hal>
     <hal format="aidl">
         <name>vendor.xiaomi.hardware.fx.tunnel</name>
-	<fqname>IMiFxTunnel/default</fqname>
+        <fqname>IMiFxTunnel/default</fqname>
     </hal>
     <hal format="aidl">
         <name>vendor.xiaomi.hardware.misys.common</name>
