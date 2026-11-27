@@ -20,7 +20,6 @@ else
 $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/vabc_features.mk)
 PRODUCT_SYSTEM_PARTITIONS_FILE_SYSTEM_TYPE ?= erofs
 PRODUCT_VIRTUAL_AB_COMPRESSION_METHOD := lz4
-PRODUCT_VENDOR_PROPERTIES += ro.virtual_ab.compression.threads=true
 endif
 
 AB_OTA_POSTINSTALL_CONFIG += \
@@ -157,6 +156,7 @@ PRODUCT_PACKAGES += \
     android.hardware.health-service.degas-recovery
 
 # Health (Lineage charging control)
+ifneq ($(wildcard hardware/lineage/interfaces/health/aidl/default/Android.bp),)
 PRODUCT_PACKAGES += \
     vendor.lineage.health-service.default
 
@@ -164,6 +164,7 @@ $(call soong_config_set,lineage_health,charging_control_charging_path,/sys/class
 $(call soong_config_set,lineage_health,charging_control_charging_enabled,0)
 $(call soong_config_set,lineage_health,charging_control_charging_disabled,1)
 $(call soong_config_set_bool,lineage_health,charging_control_supports_bypass,false)
+endif
 
 # IFAA manager
 PRODUCT_PACKAGES += \
@@ -242,11 +243,15 @@ PRODUCT_PACKAGES += \
     DegasSystemUIOverlay \
     DegasWifiOverlay
 
+ifneq ($(wildcard packages/apps/Aperture/Android.bp),)
 PRODUCT_PACKAGES += \
     LineageApertureOverlayDegas
+endif
 
+ifneq ($(wildcard vendor/lineage/overlay/rro_packages/NcmTetheringOverlay/Android.bp),)
 PRODUCT_PACKAGES += \
     NcmTetheringOverlay
+endif
 
 # Partitions
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
@@ -432,5 +437,7 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.hardware.telephony.euicc.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/android.hardware.telephony.euicc.xml \
     frameworks/native/data/etc/android.hardware.telephony.euicc.mep.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/android.hardware.telephony.euicc.mep.xml
 
+ifneq ($(wildcard packages/apps/OpenEUICC/Android.bp),)
 PRODUCT_PACKAGES += \
     OpenEUICC
+endif

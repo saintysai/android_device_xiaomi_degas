@@ -1,90 +1,35 @@
-# Device tree for Xiaomi 14T (degas) — Evolution X 12.4 (Android 17)
+Copyright (C) 2025-2026 The LineageOS Project
 
-Evolution X (`cnb`, Android 17 / `cp2a`) device tree for the Xiaomi 14T,
-codename `degas` (MediaTek Dimensity 8300-Ultra, MT6897).
+Device configuration for Xiaomi 14T
+===================================
 
-| Basic     | Spec sheet                                          |
-| --------- | --------------------------------------------------- |
-| SoC       | MediaTek Dimensity 8300-Ultra (MT6897)              |
-| GPU       | Mali-G615 MC6                                       |
-| Display   | 6.67" AMOLED, 1220x2712, 144 Hz                     |
-| ROM       | Evolution X 12.4 (`cnb`, Android 17 / `cp2a`)       |
-| Base FW   | HyperOS `OS3.0.306.0.WNEEUXM` (EEA, GKI 6.1.157, SPL 2026-08-01) |
+Basic   | Specification Sheet
+-------:|:-------------------------
+CPU     | Octa-core (1x3.35 GHz & 3x3.20 GHz & 4x2.20 GHz)
+Chipset | MediaTek Dimensity 8300 Ultra (MT6897)
+GPU     | Mali-G615 MC6
+Memory  | 12 GB / 16 GB RAM
+Shipped Android Version | 14
+Vendor / Firmware Base | HyperOS `OS3.0.306.0.WNEEUXM` (Android 16 / GKI 6.1)
+Storage | 256 GB / 512 GB (UFS 4.0)
+Battery | Non-removable Li-Po 5000 mAh (67W Xiaomi PPS)
+Display | 1220 x 2712 pixels, 6.67 inches, 144 Hz AMOLED
+Camera  | 50 MP (wide) + 50 MP (telephoto) + 12 MP (ultrawide), 32 MP (front)
 
-## Phase 1: `vendor_boot.img` bring-up (no vendor blobs required)
+## Usage as an Android 17 base tree
 
-`BoardConfig.mk` and `device.mk` guard `vendor/xiaomi/degas` and
-`vendor/xiaomi/degas-dolby` with `-include` / `inherit-product-if-exists` so
-Phase 1 (`m vendorbootimage`) builds cleanly before proprietary blobs are
-extracted.
+This branch (`lineage-24.0`) is kept free of ROM-specific flags so it can be forked or adapted to any Android 17 ROM.
 
-```sh
-mkdir -p evox-cnb && cd evox-cnb
-repo init -u https://github.com/Evolution-X/manifest -b cnb --git-lfs
-mkdir -p .repo/local_manifests
-cp /path/to/evox-a17-degas/manifests/evox-degas-cnb.xml .repo/local_manifests/
-# Place this tree at device/xiaomi/degas (clone or copy)
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-
-# Refresh device/xiaomi/degas-kernel with 3.0.306 GKI 6.1.157 kernel, DTB, and .ko modules
-# and unpack OS3.0.306.0.WNEEUXM partitions into ~/dump-306/root
-bash /path/to/evox-a17-degas/scripts/prepare-306-base.sh "$PWD" ~/dump-306 --download
-
-bash /path/to/evox-a17-degas/scripts/build-vendor-boot.sh "$PWD"
-```
-
-Output image: `out/target/product/degas/vendor_boot.img` (verified `VNDRBOOT`
-header v4, <= 64 MiB, touch fix `enable_touch_raw 0` + recovery touch modules).
-
-## Phase 2: Full Evolution X 12.4 (Android 17) ROM
-
-`extract-files.py` and `proprietary-files.txt` are pre-ported to Android 17
-(`cnb`) MT6897 requirements (all top-level vendor `.so` and `init/*.rc` paths
-verified against stock `OS3.0.306.0.WNEEUXM`, `pq_aidl` bumped to v7):
-- **Keymint V3 split:** `libkeymint_V3.so`, `libkeymint_remote_prov_support_V3.so`,
-  `libcppcose_rkp-V3.so` + AOSP `lib_android_keymaster_keymint_utils_V3` /
-  `libkeymint_support_V3` + compat `libbase-v34.so`.
-- **Codec2 HIDL `-v34` split:** `libcodec2_hidl@1.0/1.1/1.2-v34.so`,
-  `libcodec2_vndk-v34.so`, `libcodec2_hidl_plugin-v34.so`,
-  `libcodec2_soft_common-v34.so`, `libsfplugin_ccodec_utils-v34.so`,
-  `libformatter-v34.so`, `libstagefright_bufferqueue_helper-v36.so`, `libui-v34.so`.
-- **Audio & SoundTrigger:** `android.hardware.audio@7.1-util-v34.so`,
-  `libaudio_aidl_conversion_common_ndk-v34.so`.
-- **IMS & GNSS & TEE:** `libsink-mtk.so` -> `libaudioclient_shim.so`,
-  `mnld` -> `libmnl-v34.so`, `tee-supplicant.rc` `/dev/ufs-bsg0` ownership fix.
-
-Steps on build server:
-1. Extract blobs from the unpacked `OS3.0.306.0.WNEEUXM` dump created by `prepare-306-base.sh`:
+1. Sync dependencies using `degas.xml` (copy to `.repo/local_manifests/degas.xml`) or `lineage.dependencies`.
+2. Apply out-of-tree patches from `patches/`:
    ```sh
-   cd device/xiaomi/degas
-   ./extract-files.py ~/dump-306/root
-   ./fix-generated-bp.py
-   ```
-2. Strip firmware lines (`AB_OTA_PARTITIONS` / `add-radio-file`) from
-   `vendor/xiaomi/degas/BoardConfigVendor.mk` and `vendor/xiaomi/degas/Android.mk`
-   so the ROM strictly touches only the 14 Android partitions (NO `lk`).
-3. Ensure `vendor/xiaomi/degas/proprietary/system_ext/priv-app/ImsService/ImsService.apk`
-   carries the receiver-export smali patch (`./verify-hand-edits.py` must print `OK`).
-4. Build:
-   ```sh
-   bash /path/to/evox-a17-degas/scripts/build-rom.sh "$ANDROID_BUILD_TOP"
+   bash device/xiaomi/degas/patches/apply-patches.sh --apply "$ANDROID_BUILD_TOP"
    ```
 
-Build flags in `lineage_degas.mk`:
-- `EVO_BUILD_TYPE := Unofficial`
-- `TARGET_PROVIDES_FACE_UNLOCK_HAL := true` (uses Xiaomi hardware Face HAL)
-- `TARGET_USES_PICO_GAPPS := true` (override with `WITH_GMS=false` for Vanilla)
-- `SURFACE_FLINGER_BOOST := true`
-- `WITH_ADB_INSECURE` stays OFF.
-- `DEGAS_DOLBY_VISION := false` initially until A17 Dolby Codec2 `-v34` ABI is audited.
+## Porting to another Android 17 ROM
 
-## Credits
-
-- Based on `mt6897-devs/device_xiaomi_duchamp` and
-  `Evolution-X-Devices/device_xiaomi_duchamp` (`cnb`), same MT6897 platform.
-- Degas bring-up & Evolution X Android 17 adaptation by `@saiquer`.
-
-## License
-
-[Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution
-and stock-extracted configuration details.
+- Copy or rename `lineage_degas.mk` to `<rom>_degas.mk`, update `AndroidProducts.mk` and `PRODUCT_NAME`, and replace `vendor/lineage/config/common_full_phone.mk` with your ROM's common phone makefile.
+- In `BoardConfig.mk`, adjust `-include vendor/lineage/config/BoardConfigReservedSize.mk` if your ROM ships reserved-size rules under a different `vendor/<rom>` path.
+- `device.mk` guards `OpenEUICC`, `NcmTetheringOverlay`, `LineageApertureOverlayDegas`, and `vendor.lineage.health-service.default` automatically when those packages are absent from the ROM tree.
+- For ROMs with a software FaceUnlock app (such as Evolution X), set `TARGET_PROVIDES_FACE_UNLOCK_HAL := true` in your ROM product makefile so it uses degas's native `mifaced` HAL instead of conflicting permissions.
+- Optional vendor repos (`vendor/xiaomi/miuicamera`, `vendor/xiaomi/degas-dolby`, `vendor/xiaomi/degas-charge`) are inherited via `inherit-product-if-exists` and skipped when absent.

@@ -10,14 +10,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 # Inherit from device makefile.
 $(call inherit-product, device/xiaomi/degas/device.mk)
 
-# Inherit some common Evolution X / LineageOS stuff.
-TARGET_DISABLE_EPPE := true
-EVO_BUILD_TYPE := Unofficial
-# degas ships Xiaomi's hardware Face Unlock HAL (libmiface + android.hardware.biometrics.face v3).
-# Without this flag Evolution X installs its software FaceUnlock app and a duplicate permission XML.
-TARGET_PROVIDES_FACE_UNLOCK_HAL := true
-TARGET_USES_PICO_GAPPS := true
-SURFACE_FLINGER_BOOST := true
+# Inherit some common LineageOS stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
 PRODUCT_BRAND := Xiaomi

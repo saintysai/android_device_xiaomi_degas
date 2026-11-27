@@ -1,56 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-    <!--
-        Evolution X 12.4 (Android 17, branch `cnb`, release `cp2a`) local manifest
-        for Xiaomi 14T (degas, MT6897).
+    <!-- Local manifest for Xiaomi 14T (degas, MT6897) on Android 17 (LineageOS 24.0 base).
+         Copy to .repo/local_manifests/degas.xml and run repo sync. -->
 
-        Place as: .repo/local_manifests/evox-degas-cnb.xml
-        Clone or symlink this device tree to: device/xiaomi/degas
-        Then run: repo sync -c (see README.md for full sync flags)
+    <remote name="saintysai" fetch="https://github.com/saintysai" />
+    <remote name="lineage-upstream" fetch="https://github.com/LineageOS" />
 
-        Phase 1 (vendor_boot.img bring-up) only needs:
-          - device/xiaomi/degas          (this tree, branch cnb)
-          - device/xiaomi/degas-kernel   (prebuilt GKI kernel, dtb, ramdisk modules)
-          - hardware/mediatek            (Evolution-X-Devices/hardware_mediatek cnb)
-          - hardware/xiaomi              (Evolution-X-Devices/hardware_xiaomi cnb)
-          - device/mediatek/sepolicy_vndr (Evolution-X-Devices/device_mediatek_sepolicy_vndr cnb)
+    <!-- Device, prebuilt GKI kernel, and vendor blobs (OS3.0.306.0.WNEEUXM) -->
+    <project path="device/xiaomi/degas"
+             name="android_device_xiaomi_degas"
+             remote="saintysai"
+             revision="lineage-24.0" />
 
-        NOTE: `evo-devices` and `github-non-los` remotes are already declared by
-        Evolution-X/manifest (snippets/evolution.xml). The projects below are ALSO
-        already declared by the base manifest — do NOT re-declare them here:
-          - vendor/qcom/opensource/vibrator   (snippets/lineage.xml)
-          - hardware/lineage/compat           (snippets/evolution.xml)
-          - hardware/lineage/interfaces       (snippets/lineage.xml)
-          - hardware/google/pixel             (snippets/evolution.xml)
-          - external/wpa_supplicant_8         (default.xml, lineage-24.0)
-
-        Phase 2 (full ROM):
-          - Run scripts/prepare-306-base.sh to refresh device/xiaomi/degas-kernel
-            with OS3.0.306.0.WNEEUXM kernel 6.1.157, DTB, and .ko modules and
-            unpack the 3.0.306 partition dump for extract-files.py.
-          - Apply all 8 Evolution X cnb patches via scripts/apply-patches.sh.
-    -->
-
-    <!-- Prebuilt GKI kernel, DTB and kernel modules -->
     <project path="device/xiaomi/degas-kernel"
-             name="degas-developers/android_device_xiaomi_degas-kernel"
-             remote="github-non-los"
-             revision="lineage-23.2"
+             name="android_device_xiaomi_degas-kernel"
+             remote="saintysai"
+             revision="lineage-24.0"
              clone-depth="1" />
 
-    <!-- Common MT6897 / Xiaomi HALs & vendor sepolicy (Evolution X Android 17 cnb) -->
+    <project path="vendor/xiaomi/degas"
+             name="android_vendor_xiaomi_degas"
+             remote="saintysai"
+             revision="lineage-24.0"
+             clone-depth="1" />
+
+    <!-- Common MT6897 / Xiaomi HALs & vendor sepolicy -->
     <project path="hardware/mediatek"
-             name="hardware_mediatek"
-             remote="evo-devices"
-             revision="cnb" />
+             name="android_hardware_mediatek"
+             remote="lineage-upstream"
+             revision="lineage-24.0" />
 
     <project path="hardware/xiaomi"
-             name="hardware_xiaomi"
-             remote="evo-devices"
-             revision="cnb" />
+             name="android_hardware_xiaomi"
+             remote="lineage-upstream"
+             revision="lineage-24.0" />
 
     <project path="device/mediatek/sepolicy_vndr"
-             name="device_mediatek_sepolicy_vndr"
-             remote="evo-devices"
-             revision="cnb" />
+             name="android_device_mediatek_sepolicy_vndr"
+             remote="lineage-upstream"
+             revision="lineage-24.0" />
 </manifest>
