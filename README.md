@@ -25,6 +25,10 @@ This branch (`lineage-24.0`) is kept free of ROM-specific flags so it can be for
    ```sh
    bash device/xiaomi/degas/patches/apply-patches.sh --apply "$ANDROID_BUILD_TOP"
    ```
+3. Run the offline validator after edits:
+   ```sh
+   python3 device/xiaomi/degas/tools/validate-tree.py
+   ```
 
 ## Porting to another Android 17 ROM
 
