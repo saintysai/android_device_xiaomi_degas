@@ -9,7 +9,7 @@ init_daemon_domain(hal_touchfeature_xiaomi_default)
 binder_use(hal_touchfeature_xiaomi_default)
 add_service(hal_touchfeature_xiaomi_default, vendor_hal_touchfeature_service)
 binder_call(hal_touchfeature_xiaomi_default, system_server)
-allow system_server hal_touchfeature_xiaomi_default:binder { call transfer };
+binder_call(system_server, hal_touchfeature_xiaomi_default)
 
 # ...and separately reaches the framework sensor manager over hwbinder.
 hwbinder_use(hal_touchfeature_xiaomi_default)

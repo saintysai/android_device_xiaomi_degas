@@ -15,9 +15,15 @@ genfscon sysfs /devices/platform/11b72000.i2c/i2c-10/10-006f/power_supply       
 genfscon sysfs /devices/platform/11f01000.i2c/i2c-5/5-0034/11f01000.i2c:mt6375@34:chg/power_supply       u:object_r:sysfs_batteryinfo:s0
 genfscon sysfs /devices/platform/11f01000.i2c/i2c-5/5-0034/11f01000.i2c:mt6375@34:mtk-gauge/power_supply u:object_r:sysfs_batteryinfo:s0
 genfscon sysfs /devices/platform/pd-adapter/Charging_Adapter                                             u:object_r:sysfs_batteryinfo:s0
+genfscon sysfs /devices/platform/rt-pd-manager/typec/port0/data_role                                     u:object_r:sysfs_usb_nonplat:s0
 
 # Display
 genfscon sysfs /devices/virtual/mi_display/disp_feature/disp-DSI-0                                       u:object_r:vendor_sysfs_displayfeature:s0
+
+# GPU & Thermal
+genfscon sysfs /devices/platform/soc/13000000.mali/devfreq/13000000.mali                                  u:object_r:sysfs_gpu:s0
+genfscon sysfs /devices/virtual/thermal/thermal_message                                                   u:object_r:sysfs_therm:s0
+genfscon sysfs /devices/virtual/thermal/power_save                                                        u:object_r:sysfs_therm:s0
 
 # DisplayPort audio (system_server reads the cable state; the allow already
 # exists in the MediaTek base policy, only this address is not labelled there)

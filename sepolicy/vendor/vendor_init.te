@@ -3,10 +3,21 @@ set_prop(vendor_init, vendor_displayfeature_prop)
 set_prop(vendor_init, vendor_fingerprint_prop)
 
 rw_dir_file(vendor_init, sysfs_ged)
+allow vendor_init sysfs_ged:file setattr;
+allow vendor_init sysfs_gpu:dir search;
+allow vendor_init sysfs_gpu:file setattr;
 
 # init.project.rc lives in /vendor, so vendor_init is what runs its commands.
 # It writes thermal_message/sconfig to pick mi_thermald's scenario.
+allow vendor_init sysfs_therm:dir search;
 allow vendor_init sysfs_therm:file w_file_perms;
+allow vendor_init sysfs_therm:file setattr;
+
+allow vendor_init vendor_sysfs_displayfeature:dir search;
+allow vendor_init vendor_sysfs_displayfeature:file setattr;
+allow vendor_init sysfs_touch:dir search;
+allow vendor_init sysfs_touch:file setattr;
+allow vendor_init proc_touch:file setattr;
 
 # ...and it truncates the collision telemetry at post-fs-data, which otherwise
 # grows without bound and pins citsensorservice at 100% of a core. See the

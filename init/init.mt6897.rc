@@ -89,24 +89,19 @@ on post-fs-data
     chown root system /data/vendor/camera
     chmod 0771 /data/vendor/camera
 
-    mkdir /data/vendor/camera/offlinelog 0777 cameraserver audio
+    mkdir /data/vendor/camera/offlinelog 0770 cameraserver audio
     # for skynet
     chmod 0666 /dev/camlog
     #XIAOMI: Create camera directory for calibration file --end
-
-    #XIAOMI: Create camera directory for calibration file --start
-    mkdir /mnt/vendor/persist/camera 0775 system cameraserver
-    chown system cameraserver /mnt/vendor/persist/camera
-    chmod 0775 /mnt/vendor/persist/camera
 
     mkdir /data/vendor/camera
     chown root system /data/vendor/camera
     chmod 0771 /data/vendor/camera
 
-    chmod 755 /mnt/vendor/nvcfg/sensor
-    chmod +r /mnt/vendor/nvcfg/sensor/gyro_cali.json
-    chmod +r /mnt/vendor/nvcfg/sensor/gyro_bias.json
-    chmod +r /mnt/vendor/nvcfg/sensor/ois_temp_cali.json
+    chmod 0755 /mnt/vendor/nvcfg/sensor
+    chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_cali.json
+    chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_bias.json
+    chmod 0644 /mnt/vendor/nvcfg/sensor/ois_temp_cali.json
 
     #Create imgsys mount point
     mkdir /data/vendor/imgsys_dump
@@ -133,7 +128,7 @@ on post-fs-data
     mkdir /dev/radio 0770 radio radio
 
     # create mdota to mount mcf_ota
-    mkdir /mnt/vendor/mdota
+    mkdir /mnt/vendor/mdota 0755 root system
 
     # SCP log
     chmod 0660 /sys/class/misc/scp/scp_mobile_log
@@ -184,7 +179,7 @@ on post-fs-data
     chown media system /dev/video0
     chmod 0660 /dev/video1
     chown media system /dev/video1
-    mkdir /data/vendor/vcodec 0777 media system
+    mkdir /data/vendor/vcodec 0770 media system
     mkdir /data/vendor/vcodec/log 0770 media system
     mkdir /data/vendor/vcodec/in 0770 media system
     mkdir /data/vendor/vcodec/out 0770 media system

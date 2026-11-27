@@ -13,7 +13,7 @@ allow hal_face_default face_vendor_data_file:file create_file_perms;
 # system/sepolicy/private/hal_camera.te. These are the accesses the HAL actually
 # asked for at runtime.
 allow hal_face_default fwk_camera_service:service_manager find;
-binder_call(hal_face_default, cameraserver);
+binder_call(hal_face_default, cameraserver)
 get_prop(hal_face_default, camera_config_prop)
 
 # TEE-backed template storage. The node mifaced actually opens is /dev/tee0,
@@ -25,7 +25,9 @@ allow hal_face_default mitee_client_device:chr_file rw_file_perms;
 
 # Allow cameraserver to invoke ACameraManager/ACameraDevice callbacks on mifaced
 # and allow mifaced's AImageReader to allocate camera buffers via graphics allocator.
-binder_call(cameraserver, hal_face_default);
+binder_call(cameraserver, hal_face_default)
+allow cameraserver hal_face_default:dir search;
+allow cameraserver hal_face_default:file r_file_perms;
 hal_client_domain(hal_face_default, hal_graphics_allocator)
 
 # AImageReader_getWindowNativeHandle() uses android.hidl.token@1.0::ITokenManager
