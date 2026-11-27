@@ -12,8 +12,8 @@ bash device/xiaomi/degas/patches/apply-patches.sh --revert "$ANDROID_BUILD_TOP"
 
 | Patch | Target repo | Tier | Purpose |
 | --- | --- | --- | --- |
-| `hardware_mediatek/0001-drop-duplicate-mediatek-audio-service.patch` | `hardware/mediatek` | Required | Drops duplicate upstream `android.hardware.audio.service.mediatek` so Soong builds `device/xiaomi/degas/audio`. |
-| `hardware_mediatek/0002-usb-gadget-do-not-link-nonexistent-mass_storage-on-mtp.patch` | `hardware/mediatek` | Required | Fixes MTP enumeration by not linking missing `mass_storage` ConfigFS function. |
+| `hardware_mediatek/0001-bluetooth-audio-disable-vendor-variant.patch` | `hardware/mediatek` | Optional | Disables source vendor variant of `vendor.mediatek.hardware.bluetooth.audio-V1` so stock `V1-ndk-vendor` (linked to `audio.common-V2-ndk`) is used. |
+| `hardware_mediatek/0002-usb-gadget-do-not-link-nonexistent-mass_storage-on-mtp.patch` | `hardware/mediatek` | Optional | Fixes MTP enumeration on forks that have not dropped `mass_storage` link upstream. |
 | `external_wpa_supplicant_8/0001-nl80211-do-not-advertise-WPA_VERSION_3-for-SAE-on-MTK-gen4m.patch` | `external/wpa_supplicant_8` | Required | Keeps MTK `gen4m` from rejecting WPA3/SAE APs (`status=16`); enabled by `board_wlan_mtk_gen4m`. |
 | `frameworks_opt_telephony/0001-UiccPort-set-isEs10-for-ISD-R-logical-channel-APDUs.patch` | `frameworks/opt/telephony` | Required | Marks ISD-R logical channel APDUs as ES10 and injects MEP-A1 `targetPort` (`0x82`) into `ES10c.EnableProfile` (`0xBF31`) so eSIM download and profile switching work on degas eUICC. |
 | `frameworks_native/0001-Scheduler-do-not-resync-hw-vsync-on-a-powered-off-display.patch` | `frameworks/native` | Required | Prevents HW vsync resync while the panel is powered off. |

@@ -22,8 +22,8 @@ PATCH_ROOT="$(cd "$(dirname "$0")" && pwd)"
 # Format: "tier|target_repo|relative_patch_path"
 # tier: required (hardware/build breakage if missing) or optional (UI/ROM-dependent)
 PATCHES=(
-    "required|hardware/mediatek|hardware_mediatek/0001-drop-duplicate-mediatek-audio-service.patch"
-    "required|hardware/mediatek|hardware_mediatek/0002-usb-gadget-do-not-link-nonexistent-mass_storage-on-mtp.patch"
+    "optional|hardware/mediatek|hardware_mediatek/0001-bluetooth-audio-disable-vendor-variant.patch"
+    "optional|hardware/mediatek|hardware_mediatek/0002-usb-gadget-do-not-link-nonexistent-mass_storage-on-mtp.patch"
     "optional|device/mediatek/sepolicy_vndr|device_mediatek_sepolicy_vndr/0001-drop-duplicate-typec-genfscon-for-A17.patch"
     "required|external/wpa_supplicant_8|external_wpa_supplicant_8/0001-nl80211-do-not-advertise-WPA_VERSION_3-for-SAE-on-MTK-gen4m.patch"
     "required|frameworks/opt/telephony|frameworks_opt_telephony/0001-UiccPort-set-isEs10-for-ISD-R-logical-channel-APDUs.patch"

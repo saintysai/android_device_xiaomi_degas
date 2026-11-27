@@ -44,6 +44,7 @@ lib_fixups: lib_fixups_user_type = {
      'libmialgo_aio_seg',
      'libmialgo_utils',
      'libremosaic_wrapper',
+     'vendor.mediatek.hardware.bluetooth.audio-V1-ndk',
      'vendor.mediatek.hardware.mbrain-V2-ndk',
      'vendor.mediatek.hardware.pq_aidl-V7-ndk',
      'vendor.xiaomi.hw.touchfeature-V1-ndk'): lib_fixup_vendor_suffix,

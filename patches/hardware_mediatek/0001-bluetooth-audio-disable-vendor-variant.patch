@@ -1,0 +1,11 @@
+--- a/interfaces/hardware/bluetooth/audio/aidl/Android.bp
++++ b/interfaces/hardware/bluetooth/audio/aidl/Android.bp
+@@ -14,7 +14,7 @@
+ 
+ aidl_interface {
+     name: "vendor.mediatek.hardware.bluetooth.audio",
+-    vendor_available: true,
++    vendor_available: false,
+     srcs: ["vendor/mediatek/hardware/bluetooth/audio/*.aidl"],
+     stability: "vintf",
+     owner: "mediatek",
