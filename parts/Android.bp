@@ -14,7 +14,7 @@ android_app {
     static_libs: [
         "androidx.core_core",
         "androidx.preference_preference",
-        "org.lineageos.settings.resources",
+        "androidx.recyclerview_recyclerview",
         "vendor.xiaomi.hardware.displayfeature_aidl-V2-java",
     ],
 }

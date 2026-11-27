@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/touch_tuning_title">
+
+    <com.android.settingslib.widget.MainSwitchPreference
+        android:key="touch_game_mode"
+        android:title="@string/touch_tuning_enable_title"
+        android:persistent="false" />
+
+    <PreferenceCategory
+        android:key="touch_tuning_sliders_category"
+        android:title="@string/touch_tuning_sliders_title">
+
+        <com.android.settingslib.widget.SliderPreference
+            android:key="touch_up_threshold"
+            android:title="@string/touch_up_threshold_title"
+            android:summary="@string/touch_up_threshold_summary"
+            android:persistent="false" />
+
+        <com.android.settingslib.widget.SliderPreference
+            android:key="touch_tolerance"
+            android:title="@string/touch_tolerance_title"
+            android:summary="@string/touch_tolerance_summary"
+            android:persistent="false" />
+
+        <com.android.settingslib.widget.SliderPreference
+            android:key="touch_edge_filter"
+            android:title="@string/touch_edge_filter_title"
+            android:summary="@string/touch_edge_filter_summary"
+            android:persistent="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="touch_tuning_actions_category">
+
+        <Preference
+            android:key="touch_tuning_reset"
+            android:title="@string/touch_tuning_reset_title"
+            android:summary="@string/touch_tuning_reset_summary"
+            android:persistent="false" />
+    </PreferenceCategory>
+
+    <com.android.settingslib.widget.FooterPreference
+        android:key="touch_tuning_footer"
+        android:title="@string/touch_tuning_footer"
+        android:selectable="false" />
+
+</PreferenceScreen>

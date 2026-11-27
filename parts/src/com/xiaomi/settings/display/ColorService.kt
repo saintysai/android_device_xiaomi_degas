@@ -13,65 +13,41 @@ import android.content.IntentFilter
 import android.database.ContentObserver
 import android.hardware.display.AmbientDisplayConfiguration
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
 import android.os.SystemProperties
 import android.os.UserHandle
 import android.provider.Settings
 import android.util.Log
-import androidx.core.os.postDelayed
 
 class ColorService : Service() {
-
-    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var workerThread: HandlerThread
+    private lateinit var workerHandler: Handler
     private lateinit var ambientConfig: AmbientDisplayConfiguration
     private var isDozing = false
 
-    private val settingObserver =
-        object : ContentObserver(handler) {
+    private val settingObserver by lazy {
+        object : ContentObserver(workerHandler) {
             override fun onChange(selfChange: Boolean) {
                 if (DEBUG) Log.d(TAG, "SettingObserver: onChange")
                 setCurrentColorMode()
             }
         }
+    }
 
     private val screenStateReceiver =
         object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                if (DEBUG) Log.d(TAG, "onReceive: ${intent.action}")
-                when (intent.action) {
-                    Intent.ACTION_SCREEN_ON -> {
-                        if (isDozing) {
-                            isDozing = false
-                            handler.removeCallbacksAndMessages(null)
-                            handler.postDelayed(100) {
-                                if (DEBUG) Log.d(TAG, "Was in AOD, restore color mode")
-                                setCurrentColorMode()
-                            }
-                        }
-                    }
-                    Intent.ACTION_SCREEN_OFF -> {
-                        if (!ambientConfig.alwaysOnEnabled(UserHandle.USER_CURRENT)) {
-                            if (DEBUG) Log.d(TAG, "AOD is not enabled")
-                            isDozing = false
-                            return
-                        }
-                        /**
-                         * Use standard color mode in AOD to prevent black pixels from illuminating,
-                         * thus reducing power consumption.
-                         */
-                        isDozing = true
-                        handler.removeCallbacksAndMessages(null)
-                        if (DEBUG) Log.d(TAG, "Entered AOD, set color mode to standard")
-                        ColorMode.STANDARD.setCurrent()
-                    }
-                }
+                val action = intent.action ?: return
+                workerHandler.post { handleAction(action) }
             }
         }
 
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
+        workerThread = HandlerThread(TAG).apply { start() }
+        workerHandler = Handler(workerThread.looper)
         ambientConfig = AmbientDisplayConfiguration(this)
         contentResolver.registerContentObserver(
             Settings.System.getUriFor(Settings.System.DISPLAY_COLOR_MODE),
@@ -79,13 +55,17 @@ class ColorService : Service() {
             settingObserver,
             UserHandle.USER_CURRENT,
         )
-        val screenStateFilter =
+        val filter =
             IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_ON)
                 addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(DisplayFeatureController.ACTION_CONFIG_CHANGED)
             }
-        registerReceiver(screenStateReceiver, screenStateFilter)
-        setCurrentColorMode()
+        registerReceiver(screenStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        workerHandler.post {
+            setCurrentColorMode()
+            DisplayFeatureController.applyTrueTone(this)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -97,10 +77,48 @@ class ColorService : Service() {
         if (DEBUG) Log.d(TAG, "onDestroy")
         contentResolver.unregisterContentObserver(settingObserver)
         unregisterReceiver(screenStateReceiver)
+        workerHandler.removeCallbacksAndMessages(null)
+        workerThread.quitSafely()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun handleAction(action: String) {
+        if (DEBUG) Log.d(TAG, "handleAction: $action")
+        when (action) {
+            Intent.ACTION_SCREEN_ON -> {
+                if (isDozing) {
+                    isDozing = false
+                    workerHandler.removeCallbacks(restoreRunnable)
+                    workerHandler.postDelayed(restoreRunnable, AOD_RESTORE_DELAY_MS)
+                }
+            }
+            Intent.ACTION_SCREEN_OFF -> {
+                if (!ambientConfig.alwaysOnEnabled(UserHandle.USER_CURRENT)) {
+                    if (DEBUG) Log.d(TAG, "AOD is not enabled")
+                    isDozing = false
+                    return
+                }
+
+                isDozing = true
+                workerHandler.removeCallbacks(restoreRunnable)
+                if (DEBUG) Log.d(TAG, "Entered AOD, set color mode to standard")
+                ColorMode.STANDARD.setCurrent()
+            }
+            DisplayFeatureController.ACTION_CONFIG_CHANGED -> {
+                if (!isDozing) {
+                    DisplayFeatureController.applyTrueTone(this)
+                }
+            }
+        }
+    }
+
+    private val restoreRunnable = Runnable {
+        if (DEBUG) Log.d(TAG, "Was in AOD, restoring color mode and True Tone")
+        setCurrentColorMode()
+        DisplayFeatureController.applyTrueTone(this)
+    }
 
     private fun setCurrentColorMode() {
         if (isDozing) {
@@ -151,16 +169,14 @@ class ColorService : Service() {
             private const val EXPERT_VALUE = 0
             private const val EXPERT_COOKIE = 10
 
-            fun fromId(id: Int): ColorMode? {
-                return values().find { it.id == id }
-            }
+            fun fromId(id: Int): ColorMode? = entries.find { it.id == id }
         }
     }
 
     companion object {
         private const val TAG = "ColorService"
-        //private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
-        private val DEBUG = true
+        private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
+        private const val AOD_RESTORE_DELAY_MS = 100L
 
         private val DEFAULT_COLOR_MODE = SystemProperties.getInt("persist.sys.sf.native_mode", 0)
 

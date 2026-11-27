@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string-array name="aod_brightness_entries">
+        <item>@string/aod_brightness_auto</item>
+        <item>@string/aod_brightness_high</item>
+        <item>@string/aod_brightness_low</item>
+    </string-array>
+
+    <string-array name="aod_brightness_values" translatable="false">
+        <item>auto</item>
+        <item>high</item>
+        <item>low</item>
+    </string-array>
+
+    <string-array name="thermal_profile_entries">
+        <item>@string/thermal_profile_default</item>
+        <item>@string/thermal_profile_balanced</item>
+        <item>@string/thermal_profile_gaming</item>
+        <item>@string/thermal_profile_performance</item>
+    </string-array>
+
+    <string-array name="thermal_profile_values" translatable="false">
+        <item>50</item>
+        <item>0</item>
+        <item>18</item>
+        <item>6</item>
+    </string-array>
+</resources>

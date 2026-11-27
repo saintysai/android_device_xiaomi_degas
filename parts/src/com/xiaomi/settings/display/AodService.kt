@@ -8,46 +8,51 @@ package com.xiaomi.settings.display
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.hardware.display.DisplayManager
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
 import android.os.UserHandle
 import android.util.Log
 import android.view.Display
+import com.xiaomi.settings.display.AodBrightnessController.Mode
 import com.xiaomi.settings.touch.TouchFeatureWrapper
 import java.io.File
 
-/**
- * Owns the hardware state that only matters while the display is dozing.
- *
- * On stock both of these are driven by MIUI's displayfeature and touchfeature
- * orchestration; on LineageOS nobody owns either, which is why AOD could come
- * up black and why the fingerprint reader went dead a few seconds into AOD.
- *
- * 1. DDIC AOD brightness. The framework contributes nothing here - the backlight
- *    is pinned at 0 while dozing (config_screenBrightnessDozeFloat) and all of
- *    the luminance comes from the panel's own AOD mode, selected through
- *    mi_display's doze_brightness node.
- *
- *    The node cannot be trusted as a cache of the DDIC's state: the panel driver
- *    sets its own value inside doze_enable, so a fresh doze entry already reads 1
- *    while the screen is dark, and writing 1 on top of that is dropped ("skip
- *    same doze_brightness set:1") without emitting a DSI command. Force the
- *    change by stepping through LBM first; the intermediate value is on screen
- *    for a few dozen milliseconds, at a point where the panel is coming up anyway.
- *
- * 2. UDFPS arming. With Touch_Fod_Enable clear the touch controller does not run
- *    FOD detection at all while dozing - verified on-device, the kernel logs zero
- *    goodix_set_fod_downup events for a finger that is physically on the sensor,
- *    so xiaomi.sensor.fod never fires and SystemUI never gets its AOD interrupt.
- *    UdfpsHandler cannot do this: it only ever sees onFingerDown, which is
- *    downstream of the detection we are trying to enable.
- */
 class AodService : Service() {
-
-    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var workerThread: HandlerThread
+    private lateinit var workerHandler: Handler
+    private lateinit var displayManager: DisplayManager
+    private var sensorManager: SensorManager? = null
+    private var lightSensor: Sensor? = null
+    private var lightListenerRegistered = false
     private var wasDozing = false
+
+    private val lightSensorListener =
+        object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values.firstOrNull() ?: return
+                unregisterLightListener()
+                workerHandler.removeCallbacks(lightTimeoutRunnable)
+                if (!wasDozing) return
+                if (DEBUG) Log.d(TAG, "auto AOD lux=$lux")
+                applyBrightnessLevel(low = lux < AUTO_LOW_LUX_THRESHOLD)
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+        }
+
+    private val lightTimeoutRunnable = Runnable {
+        unregisterLightListener()
+        if (wasDozing) {
+            if (DEBUG) Log.d(TAG, "auto AOD light sensor timed out, falling back to high")
+            applyBrightnessLevel(low = false)
+        }
+    }
 
     private val displayListener =
         object : DisplayManager.DisplayListener {
@@ -58,15 +63,15 @@ class AodService : Service() {
             override fun onDisplayChanged(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) return
                 val state = getDisplayState()
-                val isDozing = state == Display.STATE_DOZE || state == Display.STATE_DOZE_SUSPEND
+                val isDozing = isDozingState(state)
                 if (isDozing == wasDozing) return
                 wasDozing = isDozing
                 if (DEBUG) Log.d(TAG, "display state=$state dozing=$isDozing")
-                handler.removeCallbacksAndMessages(null)
+                unregisterLightListener()
+                workerHandler.removeCallbacksAndMessages(null)
                 setFodDetectionEnabled(isDozing)
                 if (isDozing) {
-                    // Let the panel finish entering AOD before overriding it.
-                    handler.postDelayed({ applyDozeBrightness() }, ENTER_DELAY_MS)
+                    workerHandler.postDelayed({ applyDozeBrightness() }, ENTER_DELAY_MS)
                 }
             }
         }
@@ -74,24 +79,32 @@ class AodService : Service() {
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
-        getSystemService(DisplayManager::class.java)
-            .registerDisplayListener(displayListener, handler)
+        workerThread = HandlerThread(TAG).apply { start() }
+        workerHandler = Handler(workerThread.looper)
+        displayManager = getSystemService(DisplayManager::class.java)
+        sensorManager = getSystemService(SensorManager::class.java)
+        lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
+        wasDozing = isDozingState(getDisplayState())
+        displayManager.registerDisplayListener(displayListener, workerHandler)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null)
-        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        displayManager.unregisterDisplayListener(displayListener)
+        unregisterLightListener()
+        workerHandler.removeCallbacksAndMessages(null)
+        workerThread.quitSafely()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun getDisplayState(): Int =
-        getSystemService(DisplayManager::class.java)
-            .getDisplay(Display.DEFAULT_DISPLAY)
-            ?.state ?: Display.STATE_UNKNOWN
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.state ?: Display.STATE_UNKNOWN
+
+    private fun isDozingState(state: Int): Boolean =
+        state == Display.STATE_DOZE || state == Display.STATE_DOZE_SUSPEND
 
     private fun setFodDetectionEnabled(enabled: Boolean) {
         TouchFeatureWrapper.setModeValue(
@@ -102,8 +115,59 @@ class AodService : Service() {
     }
 
     private fun applyDozeBrightness() {
+        if (!wasDozing) return
+        when (AodBrightnessController.getMode(this)) {
+            Mode.LOW -> applyBrightnessLevel(low = true)
+            Mode.HIGH -> applyBrightnessLevel(low = false)
+            Mode.AUTO -> requestAutoBrightnessSample()
+        }
+    }
+
+    private fun requestAutoBrightnessSample() {
+        val sm = sensorManager
+        val sensor = lightSensor
+        if (sm == null || sensor == null) {
+            applyBrightnessLevel(low = false)
+            return
+        }
+        unregisterLightListener()
+        val registered =
+            sm.registerListener(
+                lightSensorListener,
+                sensor,
+                SensorManager.SENSOR_DELAY_FASTEST,
+                workerHandler,
+            )
+        if (!registered) {
+            applyBrightnessLevel(low = false)
+            return
+        }
+        lightListenerRegistered = true
+        workerHandler.postDelayed(lightTimeoutRunnable, LIGHT_SAMPLE_TIMEOUT_MS)
+    }
+
+    private fun unregisterLightListener() {
+        if (lightListenerRegistered) {
+            sensorManager?.unregisterListener(lightSensorListener)
+            lightListenerRegistered = false
+        }
+    }
+
+    private fun applyBrightnessLevel(low: Boolean) {
+        if (!wasDozing) return
+        if (low) {
+            write(DOZE_BRIGHTNESS_LBM)
+            return
+        }
+        // On fresh doze entry the driver caches doze_brightness=1 and drops redundant writes of 1;
+        // stepping through LBM (2) forces the panel to emit the HBM (1) DSI command.
         write(DOZE_BRIGHTNESS_LBM)
-        handler.postDelayed({ write(DOZE_BRIGHTNESS_HBM) }, STEP_DELAY_MS)
+        workerHandler.postDelayed(
+            {
+                if (wasDozing) write(DOZE_BRIGHTNESS_HBM)
+            },
+            STEP_DELAY_MS,
+        )
     }
 
     private fun write(value: Int) {
@@ -118,12 +182,13 @@ class AodService : Service() {
         private const val DOZE_BRIGHTNESS_NODE =
             "/sys/class/mi_display/disp-DSI-0/doze_brightness"
 
-        /** 0 = normal, 1 = HBM (60 nit), 2 = LBM (5 nit). */
         private const val DOZE_BRIGHTNESS_HBM = 1
         private const val DOZE_BRIGHTNESS_LBM = 2
 
         private const val ENTER_DELAY_MS = 250L
         private const val STEP_DELAY_MS = 50L
+        private const val LIGHT_SAMPLE_TIMEOUT_MS = 400L
+        private const val AUTO_LOW_LUX_THRESHOLD = 20f
 
         fun startService(context: Context) {
             context.startServiceAsUser(Intent(context, AodService::class.java), UserHandle.CURRENT)

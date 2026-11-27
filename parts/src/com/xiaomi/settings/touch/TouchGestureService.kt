@@ -6,45 +6,51 @@
 package com.xiaomi.settings.touch
 
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.database.ContentObserver
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
 import android.os.UserHandle
 import android.provider.Settings
+import android.service.quicksettings.TileService
 import android.util.Log
 import android.view.Display
 
-/**
- * Arms the touch controller's double-tap-to-wake gesture.
- *
- * The kernel side needs nothing from us: both touch controllers degas ships with
- * already decode the gesture and report it as KEY_WAKEUP (143), which Generic.kl
- * maps to WAKEUP, so the framework wakes the screen on its own. What is missing
- * is that nobody tells the panel to look for the gesture in the first place.
- *
- * Stock drives this through Touch_Doubletap_Mode on the touchfeature HAL, and so
- * do we. The alternative - writing the goodix driver's double_tap_enable sysfs
- * node - is deliberately not used: degas is dual-sourced (its dtbo carries a
- * goodix and a focaltech property set on the same pins, and both firmwares ship
- * in odm/firmware), and the focaltech driver exposes no such node. Going through
- * the HAL works whichever controller probed.
- *
- * config_supportDoubleTapWake in the frameworks overlay is what puts the toggle
- * in Settings and makes PowerManagerService track the secure setting; this
- * service is the half that reaches the hardware.
- */
 class TouchGestureService : Service() {
+    private lateinit var workerThread: HandlerThread
+    private lateinit var workerHandler: Handler
+    private lateinit var displayManager: DisplayManager
+    private var lastWasOn = true
 
-    private val handler = Handler(Looper.getMainLooper())
+    private val settingsObserver by lazy {
+        object : ContentObserver(workerHandler) {
+            override fun onChange(selfChange: Boolean, uri: Uri?) = applyDoubleTapSetting()
+        }
+    }
 
-    private val settingsObserver =
-        object : ContentObserver(handler) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) = applySetting()
+    private val configReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val action = intent.action ?: return
+                workerHandler.post {
+                    when (action) {
+                        TouchTuningController.ACTION_CONFIG_CHANGED -> {
+                            TouchPollingController.apply(this@TouchGestureService)
+                            TouchTuningController.apply(this@TouchGestureService)
+                        }
+                        TouchTuningController.ACTION_RESET_DEFAULTS -> {
+                            TouchTuningController.applyResetDefaults(this@TouchGestureService)
+                        }
+                    }
+                }
+            }
         }
 
     private val displayListener =
@@ -55,43 +61,78 @@ class TouchGestureService : Service() {
 
             override fun onDisplayChanged(displayId: Int) {
                 if (displayId != Display.DEFAULT_DISPLAY) return
-                // The driver reads the flag when it puts the panel into gesture
-                // mode, so make sure it is current by the time the screen goes
-                // dark. Re-asserting an unchanged value is a no-op for the HAL.
-                if (getDisplayState() != Display.STATE_ON) applySetting()
+                val isOn = getDisplayState() == Display.STATE_ON
+                if (isOn == lastWasOn) return
+                lastWasOn = isOn
+                if (!isOn) {
+                    applyDoubleTapSetting()
+                } else {
+                    if (TouchPollingController.isEnabled(this@TouchGestureService)) {
+                        TouchPollingController.apply(this@TouchGestureService)
+                    }
+                    if (TouchTuningController.isGameModeEnabled(this@TouchGestureService)) {
+                        TouchTuningController.apply(this@TouchGestureService)
+                    }
+                }
             }
         }
 
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
+        workerThread = HandlerThread(TAG).apply { start() }
+        workerHandler = Handler(workerThread.looper)
+        displayManager = getSystemService(DisplayManager::class.java)
+        lastWasOn = getDisplayState() == Display.STATE_ON
+
         contentResolver.registerContentObserver(
             Settings.Secure.getUriFor(Settings.Secure.DOUBLE_TAP_TO_WAKE),
             false,
             settingsObserver,
             UserHandle.USER_ALL,
         )
-        getSystemService(DisplayManager::class.java)
-            .registerDisplayListener(displayListener, handler)
-        applySetting()
+        val filter =
+            IntentFilter().apply {
+                addAction(TouchTuningController.ACTION_CONFIG_CHANGED)
+                addAction(TouchTuningController.ACTION_RESET_DEFAULTS)
+            }
+        registerReceiver(configReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        displayManager.registerDisplayListener(displayListener, workerHandler)
+
+        workerHandler.post {
+            applyDoubleTapSetting()
+            if (TouchPollingController.isEnabled(this)) {
+                TouchPollingController.apply(this)
+            }
+            if (TouchTuningController.isGameModeEnabled(this)) {
+                TouchTuningController.apply(this)
+            }
+            runCatching {
+                TileService.requestListeningState(
+                    this,
+                    ComponentName(this, TouchPollingTileService::class.java),
+                )
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
         contentResolver.unregisterContentObserver(settingsObserver)
-        getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+        unregisterReceiver(configReceiver)
+        displayManager.unregisterDisplayListener(displayListener)
+        workerHandler.removeCallbacksAndMessages(null)
+        workerThread.quitSafely()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun getDisplayState(): Int =
-        getSystemService(DisplayManager::class.java)
-            .getDisplay(Display.DEFAULT_DISPLAY)
-            ?.state ?: Display.STATE_UNKNOWN
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.state ?: Display.STATE_UNKNOWN
 
-    private fun applySetting() {
+    private fun applyDoubleTapSetting() {
         val enabled =
             Settings.Secure.getIntForUser(
                 contentResolver,
