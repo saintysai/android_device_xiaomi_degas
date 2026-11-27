@@ -82,7 +82,7 @@ int main(int , char* []) {
     const int32_t defaultValue = -1;
     int32_t value =
             property_get_int32("persist.vendor.audio.service.hwbinder.size_kbyte", defaultValue);
-    if (value != defaultValue) {
+    if (value > 0 && value <= 16384) {
         ALOGD("Configuring hwbinder with mmap size %d KBytes", value);
         ProcessState::initWithMmapSize(static_cast<size_t>(value) * 1024);
     }

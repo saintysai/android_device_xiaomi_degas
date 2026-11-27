@@ -197,6 +197,23 @@ class Validator:
                     if dv != "6":
                         self.err("parts", self.rel(parts_xml), f"thermal_profile defaultValue={dv!r} overrides init sconfig=6")
 
+        disp_cfg = self.root / "configs/displayconfig/display_id_4627039422300187648.xml"
+        if disp_cfg.exists():
+            dc = ET.parse(disp_cfg).getroot()
+            hbm = dc.find("highBrightnessMode")
+            if hbm is None or hbm.attrib.get("enabled") != "true":
+                self.err("display", self.rel(disp_cfg), "highBrightnessMode must be enabled=true")
+            else:
+                tp = hbm.findtext("transitionPoint")
+                if tp is None or float(tp) >= 0.60:
+                    self.err("display", self.rel(disp_cfg), f"transitionPoint={tp!r} caps manual brightness; expected < 0.60")
+            points = [
+                (float(p.findtext("value", "0")), float(p.findtext("nits", "0")))
+                for p in dc.findall("./screenBrightnessMap/point")
+            ]
+            if not points or points[-1][0] < 1.0 or points[-1][1] < 4000.0:
+                self.err("display", self.rel(disp_cfg), "screenBrightnessMap must reach value=1.0 (>=4000 nits HBM)")
+
     def _check_carrier_config(self) -> None:
         path = self.root / "overlay/DegasCarrierConfigOverlay/res/xml/vendor.xml"
         if not path.exists():
@@ -391,6 +408,20 @@ class Validator:
                 target = act.get("Value", "")
                 if target not in defined_hints:
                     self.err("powerhint", self.rel(path), f"{act['Type']} references undefined hint {target!r}")
+
+        exp_actions = {
+            act["Node"]: act.get("Value", "")
+            for act in actions
+            if act.get("PowerHint") == "EXPENSIVE_RENDERING" and "Node" in act
+        }
+        if int(exp_actions.get("CPULittleClusterMinFreq", "0") or 0) < 2000000:
+            self.err("powerhint", self.rel(path), "EXPENSIVE_RENDERING CPULittleClusterMinFreq < 2000000 causes 144 Hz blur jank")
+        if int(exp_actions.get("CPUMidClusterMinFreq", "0") or 0) < 2850000:
+            self.err("powerhint", self.rel(path), "EXPENSIVE_RENDERING CPUMidClusterMinFreq < 2850000 causes 144 Hz blur jank")
+        if exp_actions.get("UclampTAMin") != "100":
+            self.err("powerhint", self.rel(path), "EXPENSIVE_RENDERING UclampTAMin must stay 100")
+        if int(exp_actions.get("GpuPwrLevel", "99") or 99) > 38:
+            self.err("powerhint", self.rel(path), "EXPENSIVE_RENDERING GpuPwrLevel > 38 drops GPU floor below 780 MHz")
 
         _ = used_nodes
 
@@ -616,6 +647,56 @@ class Validator:
                     if not kt_path.exists():
                         self.err("parts", self.rel(manifest), f"Manifest {tag} {cname} missing {self.rel(kt_path)}")
 
+    def check_board_and_extract(self) -> None:
+        bc = self.root / "BoardConfig.mk"
+        if bc.exists():
+            txt = bc.read_text(encoding="utf-8")
+            m_cpu = re.search(r"^\s*TARGET_CPU_VARIANT\s*:=\s*(\S+)", txt, re.M)
+            if not m_cpu or m_cpu.group(1) != "cortex-a55":
+                self.err("board", self.rel(bc), "TARGET_CPU_VARIANT must stay cortex-a55 on MT6897")
+
+            forbidden_ota = {
+                "lk",
+                "preloader",
+                "tee",
+                "gz",
+                "spmfw",
+                "sspm",
+                "mcupm",
+                "dpm",
+                "pi_img",
+                "scp",
+                "ccu",
+                "vcp",
+                "gpueb",
+                "audio_dsp",
+                "md1img",
+                "connsys_bt",
+                "connsys_gnss",
+                "connsys_wifi",
+                "logo",
+                "dtbo",
+            }
+            ota_m = re.search(r"AB_OTA_PARTITIONS\s*\+?=\s*((?:[^\n]*\\\n)*[^\n]*)", txt)
+            if ota_m:
+                tokens = set(re.findall(r"[a-zA-Z0-9_]+", ota_m.group(1)))
+                bad = sorted(tokens & forbidden_ota)
+                if bad:
+                    self.err("board", self.rel(bc), f"Forbidden firmware partitions in AB_OTA_PARTITIONS: {bad}")
+
+        prop_files = self.root / "proprietary-files.txt"
+        if prop_files.exists():
+            for lineno, raw in enumerate(prop_files.read_text(encoding="utf-8").splitlines(), 1):
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "display_id_4627039422300187648.xml" in line:
+                    self.err(
+                        "extract",
+                        f"proprietary-files.txt:{lineno}",
+                        "Do not extract stock display_id_4627039422300187648.xml; device.mk ships HBM-unlocked config",
+                    )
+
     def run_all(self) -> None:
         self.check_xml_files()
         self.check_json_files()
@@ -624,6 +705,7 @@ class Validator:
         self.check_props()
         self.check_sepolicy()
         self.check_xiaomi_parts()
+        self.check_board_and_extract()
 
 
 def main() -> int:

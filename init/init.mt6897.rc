@@ -94,10 +94,6 @@ on post-fs-data
     chmod 0666 /dev/camlog
     #XIAOMI: Create camera directory for calibration file --end
 
-    mkdir /data/vendor/camera
-    chown root system /data/vendor/camera
-    chmod 0771 /data/vendor/camera
-
     chmod 0755 /mnt/vendor/nvcfg/sensor
     chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_cali.json
     chmod 0644 /mnt/vendor/nvcfg/sensor/gyro_bias.json
