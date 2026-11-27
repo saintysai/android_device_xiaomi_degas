@@ -6,6 +6,7 @@
 package com.xiaomi.settings.display
 
 import android.os.Binder
+import android.os.DeadObjectException
 import android.os.IBinder
 import android.os.Looper
 import android.os.ServiceManager
@@ -58,7 +59,13 @@ object DisplayFeatureWrapper {
                     return
                 }
         if (DEBUG) Log.d(TAG, "setFeature: mode=$mode, value=$value, cookie=$cookie")
-        runCatching { displayFeature.setFeature(/*displayId*/ 0, mode, value, cookie) }
-            .onFailure { e -> Log.e(TAG, "setFeature failed!", e) }
+        try {
+            displayFeature.setFeature(/*displayId*/ 0, mode, value, cookie)
+        } catch (e: DeadObjectException) {
+            Log.w(TAG, "displayFeature service died during setFeature", e)
+            this.displayFeature = null
+        } catch (e: Exception) {
+            Log.e(TAG, "setFeature failed!", e)
+        }
     }
 }

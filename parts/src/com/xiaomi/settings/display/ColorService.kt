@@ -24,7 +24,7 @@ class ColorService : Service() {
     private lateinit var workerThread: HandlerThread
     private lateinit var workerHandler: Handler
     private lateinit var ambientConfig: AmbientDisplayConfiguration
-    private var isDozing = false
+    @Volatile private var isDozing = false
 
     private val settingObserver by lazy {
         object : ContentObserver(workerHandler) {
@@ -178,7 +178,7 @@ class ColorService : Service() {
         private val DEBUG = Log.isLoggable(TAG, Log.DEBUG)
         private const val AOD_RESTORE_DELAY_MS = 100L
 
-        private val DEFAULT_COLOR_MODE = SystemProperties.getInt("persist.sys.sf.native_mode", 0)
+        private val DEFAULT_COLOR_MODE = SystemProperties.getInt("persist.sys.sf.native_mode", 257)
 
         fun startService(context: Context) {
             context.startServiceAsUser(

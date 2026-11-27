@@ -30,7 +30,7 @@ class AodService : Service() {
     private var sensorManager: SensorManager? = null
     private var lightSensor: Sensor? = null
     private var lightListenerRegistered = false
-    private var wasDozing = false
+    @Volatile private var wasDozing = false
 
     private val lightSensorListener =
         object : SensorEventListener {
@@ -86,6 +86,14 @@ class AodService : Service() {
         lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
         wasDozing = isDozingState(getDisplayState())
         displayManager.registerDisplayListener(displayListener, workerHandler)
+        if (wasDozing) {
+            workerHandler.post {
+                if (wasDozing) {
+                    setFodDetectionEnabled(true)
+                    applyDozeBrightness()
+                }
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -123,6 +131,7 @@ class AodService : Service() {
         }
     }
 
+    @Synchronized
     private fun requestAutoBrightnessSample() {
         val sm = sensorManager
         val sensor = lightSensor
@@ -146,6 +155,7 @@ class AodService : Service() {
         workerHandler.postDelayed(lightTimeoutRunnable, LIGHT_SAMPLE_TIMEOUT_MS)
     }
 
+    @Synchronized
     private fun unregisterLightListener() {
         if (lightListenerRegistered) {
             sensorManager?.unregisterListener(lightSensorListener)

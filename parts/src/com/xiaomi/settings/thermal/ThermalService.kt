@@ -146,6 +146,7 @@ class ThermalService : Service() {
     private fun isPerAppActive(): Boolean =
         ThermalController.isPerAppEnabled(this) && ThermalController.getCustomizedAppCount(this) > 0
 
+    @Synchronized
     private fun updateTaskStackRegistration() {
         val shouldListen = isPerAppActive()
         if (shouldListen && !taskListenerRegistered) {
@@ -161,6 +162,7 @@ class ThermalService : Service() {
         }
     }
 
+    @Synchronized
     private fun unregisterTaskStackListener() {
         if (!taskListenerRegistered) return
         try {

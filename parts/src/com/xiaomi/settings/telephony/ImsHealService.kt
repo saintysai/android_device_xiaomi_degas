@@ -38,6 +38,7 @@ class ImsHealService : Service() {
     private var globalModeSanitized = false
     private val healedSubIds = mutableSetOf<Int>()
     private var imsCallbackRegistered = false
+    @Volatile private var radioDownTm: TelephonyManager? = null
 
     private val imsNetworkCallback =
         object : ConnectivityManager.NetworkCallback() {
@@ -97,6 +98,11 @@ class ImsHealService : Service() {
             imsCallbackRegistered = false
         }
         handler.removeCallbacksAndMessages(null)
+        radioDownTm?.let { tm ->
+            radioDownTm = null
+            runCatching { tm.setRadioPower(true) }
+                .onFailure { e -> Log.e(TAG, "cannot restore radio power on destroy", e) }
+        }
         handlerThread.quitSafely()
         super.onDestroy()
     }
@@ -162,13 +168,16 @@ class ImsHealService : Service() {
     private fun poke(telephonyManager: TelephonyManager) {
         Log.i(TAG, "IMS missing on LTE/NR, cycling radio power (attempt $attempts)")
         try {
+            radioDownTm = telephonyManager
             telephonyManager.setRadioPower(false)
         } catch (e: Exception) {
+            radioDownTm = null
             Log.e(TAG, "cannot power the radio down", e)
             return
         }
         handler.postDelayed(
             {
+                radioDownTm = null
                 try {
                     telephonyManager.setRadioPower(true)
                 } catch (e: Exception) {
