@@ -411,7 +411,8 @@ PRODUCT_PACKAGES += \
     android.hardware.wifi-service \
     hostapd \
     libwifi-hal-wrapper \
-    wpa_supplicant
+    wpa_supplicant \
+    wpa_supplicant.conf
 
 PRODUCT_PACKAGES += \
     android.hardware.wifi.prebuilt.xml \

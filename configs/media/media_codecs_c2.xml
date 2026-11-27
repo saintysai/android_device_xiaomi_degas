@@ -140,8 +140,6 @@
             <Limit name="concurrent-instances" max="15" />
             <Limit name="performance-point-3840x2160" value="60" />
         </MediaCodec>
-        <!-- Disabled for initial Android 17 (cnb) bring-up while DEGAS_DOLBY_VISION := false;
-             re-enable after auditing Dolby Vision Codec2 against Android 17 -v34 libs.
         <MediaCodec name="c2.dolby.decoder.hevc" type="video/dolby-vision">
             <Alias name="OMX.MTK.VIDEO.DECODER.HEVC" />
             <Limit name="size" min="16x16" max="4096x2176" />
@@ -152,7 +150,6 @@
             <Limit name="performance-point-1920x1079" value="180" />
             <Limit name="performance-point-1920x1080" value="120" />
         </MediaCodec>
-        -->
         <MediaCodec name="c2.mtk.hevc.decoder.secure" type="video/hevc">
             <Alias name="OMX.MTK.VIDEO.DECODER.HEVC.secure" />
             <Limit name="size" min="16x16" max="1920x1088" />
@@ -161,7 +158,6 @@
             <Limit name="concurrent-instances" max="15" />
             <Limit name="performance-point-1920x1088" value="30" />
         </MediaCodec>
-        <!-- Disabled for initial Android 17 (cnb) bring-up while DEGAS_DOLBY_VISION := false.
         <MediaCodec name="c2.dolby.decoder.hevc.secure" type="video/dolby-vision">
             <Alias name="OMX.MTK.VIDEO.DECODER.HEVC.secure" />
             <Limit name="size" min="16x16" max="1920x1088" />
@@ -170,7 +166,6 @@
             <Limit name="concurrent-instances" max="15" />
             <Limit name="performance-point-1920x1088" value="30" />
         </MediaCodec>
-        -->
         <MediaCodec name="c2.mtk.hevc.decoder.lowlatency" type="video/hevc">
             <Limit name="size" min="16x16" max="4096x2176" />
             <Feature name="adaptive-playback"/>
