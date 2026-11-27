@@ -44,7 +44,7 @@ PRODUCT_PACKAGES += \
 
 # Audio
 PRODUCT_PACKAGES += \
-    android.hardware.audio.service.mediatek \
+    android.hardware.audio.service.degas \
     android.hardware.audio.effect@7.0-impl \
     android.hardware.bluetooth.audio-impl
 
@@ -56,7 +56,8 @@ PRODUCT_PACKAGES += \
     audio.usb.default
 
 PRODUCT_PACKAGES += \
-    MtkInCallService
+    MtkInCallService \
+    libbase-v34
 
 PRODUCT_COPY_FILES += \
     $(call find-copy-subdir-files,*,$(LOCAL_PATH)/configs/audio/,$(TARGET_COPY_OUT_VENDOR)/etc)
@@ -282,7 +283,12 @@ include hardware/mediatek/configs/properties/vendor_logtag.mk
 ENABLE_VENDOR_RIL_SERVICE := true
 
 $(call inherit-product, hardware/lineage/compat/frameworks/compat.mk)
-$(call inherit-product, hardware/mediatek/frameworks/mediatek-frameworks.mk)
+# Add system_ext:mediatek-common only; stock mediatek-telephony/telecom jars live in /system.
+PRODUCT_PACKAGES += \
+    mediatek-common
+
+PRODUCT_BOOT_JARS += \
+    system_ext:mediatek-common
 
 PRODUCT_PACKAGES += \
     mdota_symlink
@@ -290,16 +296,16 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     xiaomi-telephony-stub
 
-# mediatek-telephony-common and mediatek-telecom-common are put on the
-# bootclasspath by hardware/mediatek/frameworks/mediatek-frameworks.mk.
 PRODUCT_BOOT_JARS += \
     xiaomi-telephony-stub
 
 ifneq ($(wildcard vendor/xiaomi/degas/degas-vendor.mk),)
 PRODUCT_BOOT_JARS += \
     mediatek-telephony-base \
+    mediatek-telephony-common \
     mediatek-ims-common \
-    mediatek-ims-base
+    mediatek-ims-base \
+    mediatek-telecom-common
 endif
 
 PRODUCT_COPY_FILES += \

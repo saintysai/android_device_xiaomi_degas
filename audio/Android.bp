@@ -4,9 +4,10 @@
 //
 
 cc_binary {
-    name: "android.hardware.audio.service.mediatek",
+    name: "android.hardware.audio.service.degas",
+    overrides: ["android.hardware.audio.service.mediatek"],
 
-    init_rc: ["android.hardware.audio.service.mediatek.rc"],
+    init_rc: ["android.hardware.audio.service.degas.rc"],
     relative_install_path: "hw",
     vendor: true,
 
