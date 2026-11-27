@@ -56,6 +56,19 @@ class ThermalService : Service() {
             }
         }
 
+    private val packageReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action != Intent.ACTION_PACKAGE_FULLY_REMOVED) return
+                val pkg = intent.data?.schemeSpecificPart ?: return
+                workerHandler.post {
+                    if (ThermalController.getAppProfile(this@ThermalService, pkg) != null) {
+                        ThermalController.setAppProfile(this@ThermalService, pkg, null)
+                    }
+                }
+            }
+        }
+
     private val displayListener =
         object : DisplayManager.DisplayListener {
             override fun onDisplayAdded(displayId: Int) {}
@@ -91,6 +104,9 @@ class ThermalService : Service() {
                 addAction(ThermalController.ACTION_CONFIG_CHANGED)
             }
         registerReceiver(eventReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        val pkgFilter =
+            IntentFilter(Intent.ACTION_PACKAGE_FULLY_REMOVED).apply { addDataScheme("package") }
+        registerReceiver(packageReceiver, pkgFilter, Context.RECEIVER_NOT_EXPORTED)
         displayManager.registerDisplayListener(displayListener, workerHandler)
 
         workerHandler.post {
@@ -111,6 +127,7 @@ class ThermalService : Service() {
 
     override fun onDestroy() {
         unregisterReceiver(eventReceiver)
+        unregisterReceiver(packageReceiver)
         displayManager.unregisterDisplayListener(displayListener)
         unregisterTaskStackListener()
         workerHandler.removeCallbacksAndMessages(null)

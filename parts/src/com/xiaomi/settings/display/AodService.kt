@@ -6,8 +6,10 @@
 package com.xiaomi.settings.display
 
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -76,6 +78,18 @@ class AodService : Service() {
             }
         }
 
+    private val configReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action != AodBrightnessController.ACTION_AOD_CONFIG_CHANGED) return
+                workerHandler.post {
+                    if (wasDozing) {
+                        applyDozeBrightness()
+                    }
+                }
+            }
+        }
+
     override fun onCreate() {
         super.onCreate()
         if (DEBUG) Log.d(TAG, "onCreate")
@@ -85,6 +99,11 @@ class AodService : Service() {
         sensorManager = getSystemService(SensorManager::class.java)
         lightSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_LIGHT)
         wasDozing = isDozingState(getDisplayState())
+        registerReceiver(
+            configReceiver,
+            IntentFilter(AodBrightnessController.ACTION_AOD_CONFIG_CHANGED),
+            Context.RECEIVER_NOT_EXPORTED,
+        )
         displayManager.registerDisplayListener(displayListener, workerHandler)
         if (wasDozing) {
             workerHandler.post {
@@ -99,6 +118,7 @@ class AodService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
+        unregisterReceiver(configReceiver)
         displayManager.unregisterDisplayListener(displayListener)
         unregisterLightListener()
         workerHandler.removeCallbacksAndMessages(null)

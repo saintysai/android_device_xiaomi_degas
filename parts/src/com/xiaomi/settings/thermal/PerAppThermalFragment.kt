@@ -142,6 +142,10 @@ class PerAppThermalFragment : Fragment(R.layout.fragment_per_app_thermal) {
                     .toSet()
 
             val installed = pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0L))
+            ThermalController.prunePackages(
+                appContext,
+                installed.map { it.packageName }.toSet(),
+            )
             val entries =
                 installed
                     .asSequence()

@@ -202,12 +202,13 @@ class XiaomiSettingsFragment :
     private fun toggleSpeakerCleaner() {
         if (speakerCleaner.isRunning) {
             speakerCleaner.stop()
+            clearSpeakerPref?.setSummary(R.string.clear_speaker_summary)
             return
         }
         val result =
             speakerCleaner.start(
                 onTick = { remaining ->
-                    if (isAdded) {
+                    if (isAdded && speakerCleaner.isRunning) {
                         clearSpeakerPref?.summary =
                             getString(R.string.clear_speaker_running_summary, remaining)
                     }

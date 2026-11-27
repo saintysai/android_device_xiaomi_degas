@@ -7,6 +7,7 @@ package com.xiaomi.settings.speaker
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioFocusRequest
 import android.media.AudioFormat
@@ -68,8 +69,18 @@ class SpeakerCleaner(private val context: Context) {
                         audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: -1
                     var focusGranted = false
                     var track: AudioTrack? = null
+                    val deviceCallback =
+                        object : AudioDeviceCallback() {
+                            override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+                                if (addedDevices.any { it.isSink && it.type in EXTERNAL_HEADSET_TYPES }) {
+                                    Log.i(TAG, "External headset connected; stopping speaker cleaner")
+                                    stop()
+                                }
+                            }
+                        }
                     try {
                         if (audioManager != null) {
+                            audioManager.registerAudioDeviceCallback(deviceCallback, mainHandler)
                             focusGranted =
                                 audioManager.requestAudioFocus(focusRequest) ==
                                     AudioManager.AUDIOFOCUS_REQUEST_GRANTED
@@ -141,6 +152,7 @@ class SpeakerCleaner(private val context: Context) {
                             track?.release()
                         }
                         if (audioManager != null) {
+                            runCatching { audioManager.unregisterAudioDeviceCallback(deviceCallback) }
                             if (previousVolume >= 0) {
                                 runCatching {
                                     audioManager.setStreamVolume(

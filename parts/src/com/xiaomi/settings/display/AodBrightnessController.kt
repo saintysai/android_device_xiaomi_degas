@@ -6,10 +6,13 @@
 package com.xiaomi.settings.display
 
 import android.content.Context
+import android.content.Intent
 
 object AodBrightnessController {
     private const val PREFS_NAME = "xiaomi_parts_prefs"
     private const val KEY_AOD_BRIGHTNESS = "aod_brightness_mode"
+
+    const val ACTION_AOD_CONFIG_CHANGED = "com.xiaomi.settings.display.CONFIG_CHANGED"
 
     enum class Mode(val prefValue: String) {
         AUTO("auto"),
@@ -31,5 +34,6 @@ object AodBrightnessController {
 
     fun setMode(context: Context, mode: Mode) {
         prefs(context).edit().putString(KEY_AOD_BRIGHTNESS, mode.prefValue).apply()
+        context.sendBroadcast(Intent(ACTION_AOD_CONFIG_CHANGED).setPackage(context.packageName))
     }
 }

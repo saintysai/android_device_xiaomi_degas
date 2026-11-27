@@ -120,7 +120,17 @@ object ThermalController {
         return result
     }
 
-    fun getCustomizedAppCount(context: Context): Int = perAppPrefs(context).all.size
+    fun getCustomizedAppCount(context: Context): Int = getAllAppProfiles(context).size
+
+    fun prunePackages(context: Context, installedPackages: Set<String>) {
+        val current = perAppPrefs(context).all.keys
+        val stale = current.filter { it !in installedPackages }
+        if (stale.isEmpty()) return
+        val editor = perAppPrefs(context).edit()
+        stale.forEach { editor.remove(it) }
+        editor.apply()
+        notifyConfigChanged(context)
+    }
 
     fun clearAllAppProfiles(context: Context) {
         perAppPrefs(context).edit().clear().apply()
