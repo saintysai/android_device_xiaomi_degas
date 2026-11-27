@@ -13,11 +13,13 @@
 #include <linux/input.h>
 #include <log/log.h>
 #include <poll.h>
+#include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <utils/SystemClock.h>
 
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -28,19 +30,12 @@ namespace sensors {
 namespace V2_0 {
 namespace subhal {
 namespace implementation {
-
 using ::android::hardware::sensors::V1_0::SensorFlagBits;
 using ::android::hardware::sensors::V1_0::SensorType;
 
 namespace {
-
-// The goodix driver reports a fingerprint press as this vendor-specific key,
-// ahead of the touch stream for the same contact. It is emitted for the sensor
-// area only, which is what makes it usable as a press signal.
 constexpr uint16_t kFodKeyCode = 0x152;
 
-// degas ships with a goodix or a focaltech touch controller, depending on the
-// panel supplier. Both report the FOD key on their own input device.
 constexpr const char* kTouchDeviceNames[] = {"goodix_ts", "focaltech_ts"};
 
 static bool isTouchDevice(const char* name) {
@@ -53,22 +48,13 @@ static bool isTouchDevice(const char* name) {
 }
 constexpr char kInputDir[] = "/dev/input";
 
-// Centre and radius of the sensor, matching
-// persist.vendor.fingerprint.sensor_location (610|2444|105) in vendor.prop.
-// DozeSensors reads values[0]/values[1] as the screen coordinates of the press.
 constexpr float kFodCentreX = 610.0f;
 constexpr float kFodCentreY = 2444.0f;
 constexpr float kFodMajor = 105.0f;
 constexpr float kFodMinor = 105.0f;
-
-// Long enough to leave the thread idle, short enough to shut down promptly.
-constexpr int kPollTimeoutMs = 250;
-
-}  // namespace
+}
 
 UdfpsSensorSubHal::UdfpsSensorSubHal() {
-    // Handle is sub-HAL local; the HalProxy puts its own index in the upper byte
-    // before handing the sensor to the framework.
     mSensorInfo.sensorHandle = 1;
     mSensorInfo.name = "UDFPS Long Press";
     mSensorInfo.vendor = "Xiaomi";
@@ -79,7 +65,7 @@ UdfpsSensorSubHal::UdfpsSensorSubHal() {
     mSensorInfo.maxRange = 2048.0f;
     mSensorInfo.resolution = 1.0f;
     mSensorInfo.power = 0.0f;
-    // Required values for a one-shot sensor.
+
     mSensorInfo.minDelay = -1;
     mSensorInfo.maxDelay = 0;
     mSensorInfo.fifoReservedEventCount = 0;
@@ -95,7 +81,6 @@ UdfpsSensorSubHal::~UdfpsSensorSubHal() {
 }
 
 Return<Result> UdfpsSensorSubHal::initialize(const sp<IHalProxyCallback>& halProxyCallback) {
-    // Called again whenever the sensors framework restarts, so drop all state.
     mArmed = false;
     stopReader();
 
@@ -111,7 +96,6 @@ Return<void> UdfpsSensorSubHal::getSensorsList(getSensorsList_cb _hidl_cb) {
 }
 
 Return<Result> UdfpsSensorSubHal::setOperationMode(OperationMode mode) {
-    // No data injection support, so only NORMAL is accepted.
     return mode == OperationMode::NORMAL ? Result::OK : Result::BAD_VALUE;
 }
 
@@ -121,13 +105,11 @@ Return<Result> UdfpsSensorSubHal::activate(int32_t sensorHandle, bool enabled) {
     }
 
     if (enabled) {
-        // Hold the input device open only while armed: the framework arms this
-        // sensor while dozing, so during normal use we are not woken by every
-        // touch event the device reports. Note the reader outlives a single
-        // trigger - a one-shot sensor is re-armed without being deactivated
-        // first, so this has to tolerate being called with the reader running.
-        startReader();
         mArmed = true;
+        if (!startReader()) {
+            mArmed = false;
+            return Result::INVALID_OPERATION;
+        }
     } else {
         mArmed = false;
         stopReader();
@@ -136,42 +118,39 @@ Return<Result> UdfpsSensorSubHal::activate(int32_t sensorHandle, bool enabled) {
     return Result::OK;
 }
 
-Return<Result> UdfpsSensorSubHal::batch(int32_t sensorHandle, int64_t /* samplingPeriodNs */,
-                                        int64_t /* maxReportLatencyNs */) {
-    // Sampling rate is meaningless for a one-shot sensor, but the call still has
-    // to succeed for a handle we own.
+Return<Result> UdfpsSensorSubHal::batch(int32_t sensorHandle, int64_t ,
+                                        int64_t ) {
     return sensorHandle == mSensorInfo.sensorHandle ? Result::OK : Result::BAD_VALUE;
 }
 
-Return<Result> UdfpsSensorSubHal::flush(int32_t /* sensorHandle */) {
-    // One-shot sensors do not support flush, per the HAL definition.
+Return<Result> UdfpsSensorSubHal::flush(int32_t ) {
     return Result::BAD_VALUE;
 }
 
-Return<Result> UdfpsSensorSubHal::injectSensorData(const Event& /* event */) {
+Return<Result> UdfpsSensorSubHal::injectSensorData(const Event& ) {
     return Result::INVALID_OPERATION;
 }
 
-Return<void> UdfpsSensorSubHal::registerDirectChannel(const SharedMemInfo& /* mem */,
+Return<void> UdfpsSensorSubHal::registerDirectChannel(const SharedMemInfo& ,
                                                       registerDirectChannel_cb _hidl_cb) {
     _hidl_cb(Result::INVALID_OPERATION, -1);
     return Void();
 }
 
-Return<Result> UdfpsSensorSubHal::unregisterDirectChannel(int32_t /* channelHandle */) {
+Return<Result> UdfpsSensorSubHal::unregisterDirectChannel(int32_t ) {
     return Result::INVALID_OPERATION;
 }
 
-Return<void> UdfpsSensorSubHal::configDirectReport(int32_t /* sensorHandle */,
-                                                   int32_t /* channelHandle */,
-                                                   RateLevel /* rate */,
+Return<void> UdfpsSensorSubHal::configDirectReport(int32_t ,
+                                                   int32_t ,
+                                                   RateLevel ,
                                                    configDirectReport_cb _hidl_cb) {
     _hidl_cb(Result::INVALID_OPERATION, -1);
     return Void();
 }
 
 Return<void> UdfpsSensorSubHal::debug(const hidl_handle& fd,
-                                      const hidl_vec<hidl_string>& /* args */) {
+                                      const hidl_vec<hidl_string>& ) {
     if (fd == nullptr || fd->numFds < 1) {
         return Void();
     }
@@ -179,7 +158,7 @@ Return<void> UdfpsSensorSubHal::debug(const hidl_handle& fd,
     bool reading;
     {
         std::lock_guard<std::mutex> lock(mThreadMutex);
-        reading = mThread.joinable();
+        reading = mThread.joinable() && mRunning;
     }
     dprintf(fd->data[0], "degas UDFPS long press: armed=%d, reading input=%d\n",
             mArmed ? 1 : 0, reading ? 1 : 0);
@@ -220,42 +199,79 @@ int UdfpsSensorSubHal::openTouchDevice() {
     return found;
 }
 
-void UdfpsSensorSubHal::startReader() {
+bool UdfpsSensorSubHal::startReader() {
     std::lock_guard<std::mutex> lock(mThreadMutex);
     if (mThread.joinable()) {
-        return;  // already reading
+        if (mRunning) {
+            return true;
+        }
+        mThread.join();
+        if (mWakeupFd >= 0) {
+            close(mWakeupFd);
+            mWakeupFd = -1;
+        }
     }
 
-    int fd = openTouchDevice();
-    if (fd < 0) {
-        return;  // reportPress simply never fires; logged above
+    int inputFd = openTouchDevice();
+    if (inputFd < 0) {
+        return false;
     }
 
+    int wakeupFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if (wakeupFd < 0) {
+        ALOGE("failed to create wakeup eventfd: %s", strerror(errno));
+        close(inputFd);
+        return false;
+    }
+
+    mWakeupFd = wakeupFd;
     mStop = false;
-    mThread = std::thread(&UdfpsSensorSubHal::readerLoop, this, fd);
+    mRunning = true;
+    mThread = std::thread(&UdfpsSensorSubHal::readerLoop, this, inputFd, wakeupFd);
+    return true;
 }
 
 void UdfpsSensorSubHal::stopReader() {
     std::thread thread;
+    int wakeupFd = -1;
     {
         std::lock_guard<std::mutex> lock(mThreadMutex);
         if (!mThread.joinable()) {
             return;
         }
         mStop = true;
+        wakeupFd = mWakeupFd;
+        mWakeupFd = -1;
         thread = std::move(mThread);
     }
-    // Joined outside the lock: the reader takes mCallbackMutex, and holding
-    // mThreadMutex across the join would be enough to deadlock if it ever grew
-    // to need this one too.
+
+    if (wakeupFd >= 0) {
+        const uint64_t wake = 1;
+        ssize_t written;
+        do {
+            written = write(wakeupFd, &wake, sizeof(wake));
+        } while (written < 0 && errno == EINTR);
+        if (written < 0 && errno != EAGAIN) {
+            ALOGW("failed to signal wakeup eventfd: %s", strerror(errno));
+        }
+    }
+
     thread.join();
+    if (wakeupFd >= 0) {
+        close(wakeupFd);
+    }
 }
 
-void UdfpsSensorSubHal::readerLoop(int fd) {
-    pollfd pfd = {.fd = fd, .events = POLLIN, .revents = 0};
+void UdfpsSensorSubHal::readerLoop(int inputFd, int wakeupFd) {
+    pollfd pfds[2] = {
+            {.fd = inputFd, .events = POLLIN, .revents = 0},
+            {.fd = wakeupFd, .events = POLLIN, .revents = 0},
+    };
 
     while (!mStop) {
-        int ret = poll(&pfd, 1, kPollTimeoutMs);
+        pfds[0].revents = 0;
+        pfds[1].revents = 0;
+        int ret = poll(pfds, 2, -1);
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
@@ -263,17 +279,29 @@ void UdfpsSensorSubHal::readerLoop(int fd) {
             ALOGE("poll failed: %s", strerror(errno));
             break;
         }
-        if (ret == 0) {
-            continue;  // timed out, re-check mStop
+        if (mStop || (pfds[1].revents & POLLIN)) {
+            break;
+        }
+        if (pfds[0].revents & (POLLERR | POLLHUP | POLLNVAL)) {
+            ALOGE("input fd error state: revents=0x%x",
+                  static_cast<unsigned int>(pfds[0].revents));
+            break;
+        }
+        if (!(pfds[0].revents & POLLIN)) {
+            continue;
         }
 
         input_event events[16];
-        ssize_t bytes = read(fd, events, sizeof(events));
+        ssize_t bytes = read(inputFd, events, sizeof(events));
         if (bytes < 0) {
             if (errno == EINTR || errno == EAGAIN) {
                 continue;
             }
             ALOGE("read failed: %s", strerror(errno));
+            break;
+        }
+        if (bytes == 0) {
+            ALOGE("unexpected EOF on input fd");
             break;
         }
 
@@ -287,11 +315,11 @@ void UdfpsSensorSubHal::readerLoop(int fd) {
         }
     }
 
-    close(fd);
+    mRunning = false;
+    close(inputFd);
 }
 
 void UdfpsSensorSubHal::reportPress() {
-    // One-shot: report the first press only, and let the framework re-arm us.
     if (!mArmed.exchange(false)) {
         return;
     }
@@ -316,18 +344,15 @@ void UdfpsSensorSubHal::reportPress() {
 
     ALOGI("reporting UDFPS press at %.0f,%.0f", kFodCentreX, kFodCentreY);
 
-    // A wake-up sensor must post its events under a held wakelock, or the
-    // HalProxy treats the sub-HAL as non-compliant and aborts.
     std::vector<Event> events{event};
     callback->postEvents(events, callback->createScopedWakelock(true));
 }
-
-}  // namespace implementation
-}  // namespace subhal
-}  // namespace V2_0
-}  // namespace sensors
-}  // namespace hardware
-}  // namespace android
+}
+}
+}
+}
+}
+}
 
 ::android::hardware::sensors::V2_0::implementation::ISensorsSubHal* sensorsHalGetSubHal(
         uint32_t* version) {
