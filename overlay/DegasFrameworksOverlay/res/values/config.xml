@@ -778,7 +778,9 @@
 
          Note: If the display supports multiple resolutions, please define the path config based on
          the highest resolution so that it can be scaled correctly in each resolution. -->
-    <string name="config_mainDisplayShape" translatable="false">M20 0h1040s20 0 20 20v2360s0 20 -20 20h-1040s-20 0 -20 -20v-2360s0 -20 20 -20</string>
+    <string name="config_mainDisplayShape" translatable="false">M105 0h1010s105 0 105 105v2502s0 105 -105 105h-1010s-105 0 -105 -105v-2502s0 -105 105 -105</string>
+
+    <bool name="config_adaptive_sleep_available">true</bool>
 
     <!-- Whether to enable fp unlock when screen turns off on udfps devices -->
     <bool name="config_screen_off_udfps_enabled">true</bool>
