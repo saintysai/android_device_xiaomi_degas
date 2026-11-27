@@ -64,9 +64,8 @@ class TouchGestureService : Service() {
                 val isOn = getDisplayState() == Display.STATE_ON
                 if (isOn == lastWasOn) return
                 lastWasOn = isOn
-                if (!isOn) {
-                    applyDoubleTapSetting()
-                } else {
+                applyDoubleTapSetting()
+                if (isOn) {
                     if (TouchPollingController.isEnabled(this@TouchGestureService)) {
                         TouchPollingController.apply(this@TouchGestureService)
                     }
@@ -116,7 +115,10 @@ class TouchGestureService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        workerHandler.post { applyDoubleTapSetting() }
+        return START_STICKY
+    }
 
     override fun onDestroy() {
         contentResolver.unregisterContentObserver(settingsObserver)

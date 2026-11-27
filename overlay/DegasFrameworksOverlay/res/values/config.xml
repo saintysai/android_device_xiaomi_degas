@@ -117,6 +117,12 @@
          the input device instead; see sensors/UdfpsSensorSubHal.cpp. -->
     <string name="config_dozeUdfpsLongPressSensorType" translatable="false">org.degas.sensor.udfps_long_press</string>
 
+    <!-- Double-tap while dozing. In DOZE (LP1), mediatek-drm only emits MI_DISP_DPMS_EVENT (not
+         EARLY_EVENT) so xiaomi_touch_common keeps the touch IC awake emitting ABS_MT events while
+         InputReader disables the inactive viewport. UdfpsSensorSubHal exposes this one-shot
+         wake-up sensor on the same touch evdev so DozeTriggers wakes cleanly after ENTER_DOZE_DELAY. -->
+    <string name="config_dozeDoubleTapSensorType" translatable="false">org.degas.sensor.double_tap</string>
+
     <!-- Stability requirements in milliseconds for accepting a new brightness level.  This is used
          for debouncing the light sensor.  Different constants are used to debounce the light sensor
          when adapting to brighter or darker environments.  This parameter controls how quickly

@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.hardware.display.DisplayManager
+import android.provider.Settings
 import android.util.Log
 import android.view.Display
 import android.view.Display.HdrCapabilities
@@ -29,6 +30,21 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     private fun onBootCompleted(context: Context) {
         ImsHealService.startService(context)
+        TouchGestureService.startService(context)
+        runCatching {
+            val cr = context.contentResolver
+            if (Settings.Secure.getString(cr, "search_all_entrypoints_enabled") == null) {
+                val onByDefault =
+                    context.resources.getBoolean(
+                        com.android.internal.R.bool.config_searchAllEntrypointsEnabledDefault
+                    )
+                Settings.Secure.putInt(
+                    cr,
+                    "search_all_entrypoints_enabled",
+                    if (onByDefault) 1 else 0,
+                )
+            }
+        }
     }
 
     private fun onLockedBootCompleted(context: Context) {

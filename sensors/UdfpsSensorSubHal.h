@@ -10,7 +10,6 @@
 
 #include <atomic>
 #include <mutex>
-#include <string>
 #include <thread>
 
 namespace android {
@@ -19,8 +18,13 @@ namespace sensors {
 namespace V2_0 {
 namespace subhal {
 namespace implementation {
+
 using ::android::sp;
 using ::android::hardware::Return;
+using ::android::hardware::Void;
+using ::android::hardware::hidl_handle;
+using ::android::hardware::hidl_string;
+using ::android::hardware::hidl_vec;
 using ::android::hardware::sensors::V1_0::Event;
 using ::android::hardware::sensors::V1_0::OperationMode;
 using ::android::hardware::sensors::V1_0::RateLevel;
@@ -53,17 +57,20 @@ class UdfpsSensorSubHal : public ISensorsSubHal {
     Return<Result> initialize(const sp<IHalProxyCallback>& halProxyCallback) override;
 
   private:
-
     static int openTouchDevice();
 
     bool startReader();
     void stopReader();
     void readerLoop(int inputFd, int wakeupFd);
     void reportPress();
+    void reportDoubleTap();
 
     SensorInfo mSensorInfo{};
+    SensorInfo mDoubleTapSensorInfo{};
 
     std::atomic<bool> mArmed{false};
+    std::atomic<bool> mDoubleTapArmed{false};
+    std::atomic<uint32_t> mDoubleTapResetGen{0};
 
     std::mutex mThreadMutex;
     std::thread mThread;
